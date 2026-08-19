@@ -10,3 +10,6 @@
   <a href="https://www.npmjs.com/package/dsh-tavily"><img src="https://img.shields.io/npm/v/dsh-tavily?style=flat-square&label=dsh-tavily&color=cb3837" alt="dsh-tavily on npm"></a>
   <a href="https://www.npmjs.com/package/dsh-mcp-firecrawl"><img src="https://img.shields.io/npm/v/dsh-mcp-firecrawl?style=flat-square&label=dsh-mcp-firecrawl&color=cb3837" alt="dsh-mcp-firecrawl on npm"></a>
   <a href="https://www.npmjs.com/package/dsh-mcp-context7"><img src="https://img.shields.io/npm/v/dsh-mcp-context7?style=flat-square&label=dsh-mcp-context7&color=cb3837" alt="dsh-mcp-context7 on npm"></a>
+  <a href="https://github.com/PyModel/dsh-research-plugins/blob/main/LICENSE"><img src="https://img.shields.io/github/license/PyModel/dsh-research-plugins?style=flat-square&color=blue" alt="MIT license"></a>
+    <a href="https://github.com/PyModel/pythinker-code"><img src="https://komarev.com/ghpvc/?username=PyModel-pythinker-code&label=visitors&color=4f46e5&style=flat-square" alt="visitors"></a>
+</p>
