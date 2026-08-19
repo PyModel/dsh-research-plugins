@@ -19,3 +19,6 @@
   <a href="#install">Install</a> ·
   <a href="#api-keys">API keys</a> ·
   <a href="#repo-layout">Repo layout</a> ·
+  <a href="#license">License</a>
+</p>
+
