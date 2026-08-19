@@ -26,3 +26,6 @@
 
 ## What this is
 
+**dsh-research-plugins** gives your [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (DSH) agent three research superpowers it does not have out of the box:
+
+- **Web search** via the [Tavily Search API](https://tavily.com) — a settings toggle that swaps the built-in DeepSeek search for Tavily, with keyless search support.
