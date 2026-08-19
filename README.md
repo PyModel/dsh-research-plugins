@@ -93,3 +93,6 @@ The Firecrawl and Context7 packages are pure-config bundles (`package.json` + `c
 ## Contributing
 
 Issues and pull requests are welcome. Please open a discussion on [GitHub](https://github.com/PyModel/dsh-research-plugins) before starting large changes.
+
+---
+
