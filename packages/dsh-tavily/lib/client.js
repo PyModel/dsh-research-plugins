@@ -1,5 +1,5 @@
 window.__ModuleLoader__.load({
-  id: "dsh-tavily",
+  id: "@pymodel/dsh-tavily",
   factory: (require) => {
     var module = { exports: {} };
     var exports = module.exports;

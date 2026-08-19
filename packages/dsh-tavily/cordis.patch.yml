@@ -6,7 +6,7 @@
 
 - insert:
     - id: web-search-tavily
-      name: dsh-tavily
+      name: '@pymodel/dsh-tavily'
 
 # Tavily MCP bridge (extract / crawl / map tools) via the CLI-shipped mcp-client.
 # Enabled only when TAVILY_API_KEY is present in the launch environment
