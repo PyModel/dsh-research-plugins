@@ -35,3 +35,6 @@
 Everything is delivered as drop-in **DSH plugins** — no vendor lock-in, no forks, just a `dsh plugin add` away.
 
 | Package | What it adds |
+|---|---|
+| [`dsh-tavily`](packages/dsh-tavily) | Tavily Search API as a web search provider (settings toggle, keyless search) + a Tavily MCP bridge for `extract` / `crawl` / `map` tools |
+| [`dsh-mcp-firecrawl`](packages/dsh-mcp-firecrawl) | Firecrawl MCP: `mcp__firecrawl__*` scrape, crawl, map, and search tools |
