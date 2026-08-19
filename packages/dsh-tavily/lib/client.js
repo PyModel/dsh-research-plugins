@@ -387,3 +387,99 @@ window.__ModuleLoader__.load({
                       react_jsx_runtime.jsx("button", {
                         type: "button",
                         className: "tvly_probeBtn",
+                        disabled: state.probing || state.saving,
+                        title: t ? t("probeHint") : "Runs one real Tavily search. Uses 1 credit when a key is configured.",
+                        onClick: props.probe,
+                        children: state.probing
+                          ? (t ? t("probeTesting") : "Testing…")
+                          : (t ? t("probe") : "Test connection"),
+                      }),
+                      state.probeStatus === "ok"
+                        ? react_jsx_runtime.jsx("p", { className: "tvly_probeStatus", children: t ? t("probeOk") : "Connected" })
+                        : state.probeStatus === "fail"
+                          ? react_jsx_runtime.jsx("p", { className: "tvly_probeStatus tvly_probeFail", children: probeFailText(t, state.probeFail) })
+                          : null,
+                    ],
+                  }),
+                  react_jsx_runtime.jsxs("div", {
+                    className: "tvly_actions",
+                    children: [
+                      state.failed ? react_jsx_runtime.jsx("p", { className: "tvly_failed", children: t ? t("saveFailed") : "Save failed" }) : null,
+                      react_jsx_runtime.jsx("button", {
+                        type: "button",
+                        className: "tvly_discard",
+                        disabled: blocked,
+                        onClick: props.discard,
+                        children: t ? t("discard") : "Discard",
+                      }),
+                      react_jsx_runtime.jsx("button", {
+                        type: "button",
+                        className: "tvly_save",
+                        disabled: blocked,
+                        onClick: props.save,
+                        children: state.saving ? (t ? t("saving") : "Saving…") : (t ? t("save") : "Save"),
+                      }),
+                    ],
+                  }),
+                ],
+              }),
+            ],
+          }) : null,
+        ],
+      });
+    }
+
+    const inject = ["slots", "locale", "connection", "remote"];
+
+    function apply(ctx) {
+      const { api } = ctx.get("connection");
+      const en = {
+        title: "Tavily web search",
+        description: "On: Tavily (works without a key). Off: official DeepSeek.",
+        enable: "Use Tavily (off = official DeepSeek)",
+        unsaved: "Unsaved",
+        keyOk: "Key configured",
+        keyMissing: "No key — keyless",
+        keyClearing: "Will clear key",
+        clearKey: "Clear key",
+        keyPlaceholderKeep: "Leave blank to keep the current key.",
+        keyPlaceholderEmpty: "Optional. Leave blank for keyless.",
+        keyPlaceholderClear: "Save to clear the current key.",
+        keyHintKeep: "Not written to the settings file. Leave blank to keep the current key.",
+        keyHintEmpty: "Leave blank to use Tavily keyless. A saved key uses your account quota.",
+        keyHintClear: "Save to delete the key and return to keyless.",
+        saveFailed: "Save failed",
+        discard: "Discard",
+        save: "Save",
+        saving: "Saving…",
+        probe: "Test connection",
+        probeTesting: "Testing…",
+        probeOk: "Connected",
+        probeFail: "Failed: ",
+        probeTimeout: "timed out",
+        probeInvalidKey: "invalid key",
+        probeNetwork: "network error",
+        probeUnavailable: "test endpoint unavailable",
+        probeUnknown: "unknown error",
+        probeHint: "Runs one real Tavily search. Uses 1 credit when a key is configured.",
+      };
+      ctx.effect(() => injectCss(), "tavily css");
+      ctx.effect(() => ctx.locale.register("web-search-tavily", { en }), "tavily locale");
+
+      const card = new TavilyCardController(api);
+      const remote = ctx.get("remote");
+      if (remote) ctx.effect(() => remote.$on("credentials/updated", () => card.refresh()), "tavily creds");
+
+      ctx.slots.inject("settings.plugin.item", () => ctx.slots.register({
+        name: "settings.plugin.item",
+        key: "web-search-tavily",
+        locale: "web-search-tavily",
+        inject: () => card.inject(),
+      }, TavilyCard));
+    }
+
+    exports.apply = apply;
+    exports.inject = inject;
+    return module.exports;
+  },
+});
