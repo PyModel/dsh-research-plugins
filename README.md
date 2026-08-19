@@ -50,3 +50,6 @@ Each package installs independently into a DSH profile:
 dsh plugin --profile web add dsh-tavily
 dsh plugin --profile web add dsh-mcp-firecrawl
 dsh plugin --profile web add dsh-mcp-context7
+dsh web
+```
+
