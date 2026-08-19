@@ -3,6 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "DeepSeek Harness research plugins",
-  "license": "MIT"
+  "description": "DeepSeek Harness research plugins: Tavily web search + Firecrawl, Context7, and Tavily MCP bridges",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pymodel/dsh-research-plugins.git"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "elkaix",
+    "url": "https://github.com/elkaix"
+  },
+  "scripts": {
+    "publish:all": "pnpm -r publish --access public --no-git-checks"
+  },
+  "packageManager": "pnpm@10.12.4"
 }
