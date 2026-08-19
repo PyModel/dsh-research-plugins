@@ -2,5 +2,35 @@
   "name": "dsh-mcp-context7",
   "version": "0.1.0",
   "type": "module",
-  "description": "Context7 MCP for DeepSeek Harness: up-to-date library documentation and code examples"
+  "description": "Context7 MCP for DeepSeek Harness: up-to-date library documentation and code examples",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pymodel/dsh-research-plugins.git",
+    "directory": "packages/dsh-mcp-context7"
+  },
+  "bugs": {
+    "url": "https://github.com/pymodel/dsh-research-plugins/issues"
+  },
+  "homepage": "https://github.com/pymodel/dsh-research-plugins/tree/main/packages/dsh-mcp-context7#readme",
+  "license": "MIT",
+  "author": {
+    "name": "elkaix",
+    "url": "https://github.com/elkaix"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "mcp",
+    "context7",
+    "documentation"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "files": [
+    "cordis.patch.yml",
+    "README.md"
+  ]
 }
