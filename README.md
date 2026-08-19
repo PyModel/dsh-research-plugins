@@ -41,3 +41,6 @@ Everything is delivered as drop-in **DSH plugins** — no vendor lock-in, no for
 | [`dsh-mcp-context7`](packages/dsh-mcp-context7) | Context7 MCP: `mcp__context7__*` up-to-date library docs and code examples |
 
 ---
+
+## Install
+
