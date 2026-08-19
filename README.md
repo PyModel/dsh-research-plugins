@@ -47,3 +47,6 @@ Everything is delivered as drop-in **DSH plugins** — no vendor lock-in, no for
 Each package installs independently into a DSH profile:
 
 ```sh
+dsh plugin --profile web add dsh-tavily
+dsh plugin --profile web add dsh-mcp-firecrawl
+dsh plugin --profile web add dsh-mcp-context7
