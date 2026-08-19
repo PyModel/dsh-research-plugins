@@ -111,3 +111,41 @@ function toSources(body) {
     if (typeof row.title === "string" && row.title) item.title = row.title;
     if (typeof row.content === "string" && row.content) item.snippet = row.content.slice(0, 800);
     if (typeof row.published_date === "string" && row.published_date) item.publishedAt = row.published_date;
+    sources.push(item);
+  }
+  return { sources, truncated: false };
+}
+
+function sendJson(res, status, payload) {
+  res.writeHead(status, {
+    "content-type": "application/json; charset=utf-8",
+    "cache-control": "no-store",
+  });
+  res.end(JSON.stringify(payload));
+}
+
+function readJsonBody(req, limit = 4096) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let size = 0;
+    req.on("data", (chunk) => {
+      size += chunk.length;
+      if (size > limit) {
+        reject(new Error("body too large"));
+        req.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+    req.on("end", () => {
+      const text = Buffer.concat(chunks).toString("utf8").trim();
+      if (!text) {
+        resolve({});
+        return;
+      }
+      try {
+        const json = JSON.parse(text);
+        resolve(json !== null && typeof json === "object" && !Array.isArray(json) ? json : {});
+      } catch {
+        reject(new Error("invalid JSON body"));
+      }
