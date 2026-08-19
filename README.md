@@ -16,3 +16,6 @@
 
 <p align="center">
   <a href="#what-this-is">What this is</a> ·
+  <a href="#install">Install</a> ·
+  <a href="#api-keys">API keys</a> ·
+  <a href="#repo-layout">Repo layout</a> ·
