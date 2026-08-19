@@ -2,5 +2,35 @@
   "name": "dsh-mcp-firecrawl",
   "version": "0.1.0",
   "type": "module",
-  "description": "Firecrawl MCP for DeepSeek Harness: web crawling, scraping, search, and structured data extraction"
+  "description": "Firecrawl MCP for DeepSeek Harness: web crawling, scraping, search, and structured data extraction",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pymodel/dsh-research-plugins.git",
+    "directory": "packages/dsh-mcp-firecrawl"
+  },
+  "bugs": {
+    "url": "https://github.com/pymodel/dsh-research-plugins/issues"
+  },
+  "homepage": "https://github.com/pymodel/dsh-research-plugins/tree/main/packages/dsh-mcp-firecrawl#readme",
+  "license": "MIT",
+  "author": {
+    "name": "elkaix",
+    "url": "https://github.com/elkaix"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "mcp",
+    "firecrawl",
+    "scraping"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "files": [
+    "cordis.patch.yml",
+    "README.md"
+  ]
 }
