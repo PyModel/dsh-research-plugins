@@ -7,3 +7,19 @@
 - insert:
     - id: web-search-tavily
       name: dsh-tavily
+
+# Tavily MCP bridge (extract / crawl / map tools) via the CLI-shipped mcp-client.
+# Enabled only when TAVILY_API_KEY is present in the launch environment
+# (a real env var, the project .env, or $DSH_HOME/.env). The key must never
+# sit in plain YAML: it is interpolated into the endpoint URL at load time.
+- insert:
+    - id: mcp-tavily
+      name: '@deepseek-ai/dsh-mcp-client'
+      disabled: !!js process.env.TAVILY_API_KEY === undefined
+      config:
+        serverName: tavily
+        transport: streamable-http
+        url: !!js "'https://mcp.tavily.com/mcp/?tavilyApiKey=' + encodeURIComponent(process.env.TAVILY_API_KEY ?? '')"
+        headers: {}
+        toolCallTimeoutMs: 60000
+        failOnStartupError: false
