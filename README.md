@@ -44,3 +44,6 @@ Everything is delivered as drop-in **DSH plugins** — no vendor lock-in, no for
 
 ## Install
 
+Each package installs independently into a DSH profile:
+
+```sh
