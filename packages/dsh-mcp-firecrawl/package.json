@@ -1,0 +1,6 @@
+{
+  "name": "dsh-mcp-firecrawl",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Firecrawl MCP for DeepSeek Harness: web crawling, scraping, search, and structured data extraction"
+}
