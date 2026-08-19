@@ -32,3 +32,6 @@
 - **Web scraping & crawling** via the [Firecrawl](https://firecrawl.dev) MCP server — scrape, crawl, map, and search the open web inside tool calls.
 - **Up-to-date library docs** via the [Context7](https://context7.com) MCP server — on-demand documentation and code examples for any library or framework.
 
+Everything is delivered as drop-in **DSH plugins** — no vendor lock-in, no forks, just a `dsh plugin add` away.
+
+| Package | What it adds |
