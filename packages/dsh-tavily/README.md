@@ -1,4 +1,4 @@
-# dsh-tavily
+# @pymodel/dsh-tavily
 
 [![awesome · DSH plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com) [![Recommend dshfind](https://img.shields.io/badge/Recommend-dshfind-ffd700?labelColor=555555)](https://dshfind.com/plugins/pymodel/dsh-tavily?ref=badge)
 
@@ -9,7 +9,7 @@ Tavily for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness): 
 npm (stable, official recommendation):
 
 ```sh
-dsh plugin --profile web add dsh-tavily
+dsh plugin --profile web add @pymodel/dsh-tavily
 dsh web
 ```
 
@@ -83,7 +83,7 @@ The search key and toggle are stored on the credentials plane (`$DSH_HOME/.crede
 
 ## Updates
 
-- **0.4.0** Rebrand: repository moved to `pymodel/dsh-research-plugins`, author `elkaix`. Added the Tavily MCP bridge (extract / crawl / map). English-only localisation.
+- **0.1.0** First release as `@pymodel/dsh-tavily`. Web search provider with settings toggle (off = official DeepSeek, on = Tavily) plus a Tavily MCP bridge (extract / crawl / map). English-only localisation.
 
 ---
 
