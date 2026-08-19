@@ -53,3 +53,6 @@ dsh plugin --profile web add dsh-mcp-context7
 dsh web
 ```
 
+Or follow GitHub (this repo, latest commits):
+
+```sh
