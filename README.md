@@ -81,3 +81,6 @@ Rows gated on a key are disabled automatically when the key is absent, so no hal
 
 ```text
 packages/
+  dsh-tavily/          # web-search provider + settings card + Tavily MCP row
+  dsh-mcp-firecrawl/   # pure-config Firecrawl MCP bundle
+  dsh-mcp-context7/    # pure-config Context7 MCP bundle
