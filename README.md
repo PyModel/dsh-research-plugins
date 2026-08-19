@@ -102,3 +102,6 @@ Issues and pull requests are welcome. Please open a discussion on [GitHub](https
 
 ---
 
+## License
+
+[MIT](LICENSE) © [elkaix](https://github.com/elkaix)
