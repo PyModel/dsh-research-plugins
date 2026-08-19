@@ -1,0 +1,6 @@
+{
+  "name": "dsh-tavily",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Tavily web search for DeepSeek Harness"
+}
