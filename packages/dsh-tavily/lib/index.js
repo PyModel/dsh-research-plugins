@@ -74,3 +74,40 @@ async function resolveRef(ctx, envName, literal) {
     if (resolved?.value && resolved.value.length > 0) return resolved.value;
   }
   const env = launchEnvironmentOf(ctx).get(ref);
+  if (env?.value && env.value.length > 0) return env.value;
+  return undefined;
+}
+
+function tavilyHeaders(apiKey) {
+  const headers = {
+    "content-type": "application/json",
+    accept: "application/json",
+  };
+  if (apiKey) headers.authorization = `Bearer ${apiKey}`;
+  else headers["x-tavily-access-mode"] = "keyless";
+  return headers;
+}
+
+async function tavilyErrorText(res) {
+  let message = `Tavily API error (HTTP ${res.status})`;
+  try {
+    const json = await res.json();
+    const detail = typeof json?.error === "string"
+      ? json.error
+      : json?.error?.message || json?.message || json?.detail;
+    if (typeof detail === "string" && detail.length > 0) message = detail;
+  } catch {
+    // keep status-line fallback
+  }
+  return message;
+}
+
+function toSources(body) {
+  const rows = Array.isArray(body?.results) ? body.results : [];
+  const sources = [];
+  for (const row of rows) {
+    if (typeof row?.url !== "string" || row.url.length === 0) continue;
+    const item = { url: row.url };
+    if (typeof row.title === "string" && row.title) item.title = row.title;
+    if (typeof row.content === "string" && row.content) item.snippet = row.content.slice(0, 800);
+    if (typeof row.published_date === "string" && row.published_date) item.publishedAt = row.published_date;
