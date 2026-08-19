@@ -13,3 +13,6 @@
   <a href="https://github.com/PyModel/dsh-research-plugins/blob/main/LICENSE"><img src="https://img.shields.io/github/license/PyModel/dsh-research-plugins?style=flat-square&color=blue" alt="MIT license"></a>
     <a href="https://github.com/PyModel/pythinker-code"><img src="https://komarev.com/ghpvc/?username=PyModel-pythinker-code&label=visitors&color=4f46e5&style=flat-square" alt="visitors"></a>
 </p>
+
+<p align="center">
+  <a href="#what-this-is">What this is</a> ·
