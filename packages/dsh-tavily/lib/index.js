@@ -149,3 +149,41 @@ function readJsonBody(req, limit = 4096) {
       } catch {
         reject(new Error("invalid JSON body"));
       }
+    });
+    req.on("error", reject);
+  });
+}
+
+function classifyProbeError(error) {
+  const msg = error instanceof Error ? error.message : String(error);
+  if (/timed out|TimeoutError/i.test(msg)) return { code: "timeout" };
+  if (/aborted/i.test(msg)) return { code: "timeout" };
+  const http = msg.match(/HTTP (\d{3})/);
+  if (http) {
+    const status = Number(http[1]);
+    if (status === 401 || status === 403) return { code: "invalid_key" };
+    return { code: "http", status };
+  }
+  if (/unauthorized|invalid api key|forbidden|invalid key/i.test(msg)) return { code: "invalid_key" };
+  if (/Tavily request failed|fetch failed|ECONN|ENOTFOUND|network/i.test(msg)) return { code: "network" };
+  const trimmed = msg.replace(/^Tavily (API error|returned an unprocessable response):?\s*/i, "").slice(0, 60);
+  return { code: "other", error: trimmed || "unknown" };
+}
+
+async function searchTavily(query, opts, signal) {
+  throwIfAborted(signal);
+  const host = searchHost(opts.baseURL, opts.allowCustomBaseURL);
+  const requestSignal = deadlineSignal(signal, opts.searchTimeoutMs);
+  let res;
+  try {
+    res = await fetch(`${host}/search`, {
+      method: "POST",
+      redirect: "error",
+      headers: tavilyHeaders(opts.apiKey),
+      body: JSON.stringify({
+        query,
+        max_results: opts.maxResults,
+        search_depth: "basic",
+        chunks_per_source: 3,
+        include_answer: false,
+        include_raw_content: false,
