@@ -1,0 +1,9 @@
+# Tavily web-search provider: the searchProvider switch keeps official
+# DeepSeek as the fallback inside our provider (one searchProvider write on rc.6).
+- id: web
+  config:
+    searchProvider: tavily
+
+- insert:
+    - id: web-search-tavily
+      name: dsh-tavily
