@@ -83,9 +83,7 @@ The search key and toggle are stored on the credentials plane (`$DSH_HOME/.crede
 
 ## Updates
 
-- **0.4.0** Rebrand: repository moved to `pymodel/dsh-research-plugins`, author `elkaix`. Added the Tavily MCP bridge (extract / crawl / map). Removed Chinese localization; the settings card is now English-only.
-- **0.3.1** Fix: installing alongside other client plugins could freeze Web on "Failed to load plugins / dsh-tavily" (`settings.plugin.item` needs `key`, not `id`/`order`). Card namespace is `web-search-tavily`.
-- **0.3.0** Settings card: Test connection at the bottom-left. Works without a key (Tavily keyless). A saved key uses the account path and 1 credit.
+- **0.1.0** First monorepo release of `dsh-research-plugins`. Web search provider with settings toggle (off = official DeepSeek, on = Tavily) plus a Tavily MCP bridge (extract / crawl / map). English-only localisation.
 
 ---
 

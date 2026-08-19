@@ -1,6 +1,6 @@
 {
   "name": "dsh-tavily",
-  "version": "0.4.0",
+  "version": "0.1.0",
   "type": "module",
   "description": "Tavily web search + Tavily MCP for DSH: settings toggle to official DeepSeek, keyless search, MCP extract/crawl/map",
   "repository": {
