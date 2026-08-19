@@ -7,3 +7,6 @@
 <p align="center">
   <a href="https://github.com/PyModel/dsh-research-plugins"><img src="https://img.shields.io/github/stars/PyModel/dsh-research-plugins?style=flat-square&label=stars&color=4f8ef7" alt="GitHub stars"></a>
   <a href="https://github.com/PyModel/dsh-research-plugins"><img src="https://img.shields.io/github/forks/PyModel/dsh-research-plugins?style=flat-square&label=forks&color=4f8ef7" alt="GitHub forks"></a>
+  <a href="https://www.npmjs.com/package/dsh-tavily"><img src="https://img.shields.io/npm/v/dsh-tavily?style=flat-square&label=dsh-tavily&color=cb3837" alt="dsh-tavily on npm"></a>
+  <a href="https://www.npmjs.com/package/dsh-mcp-firecrawl"><img src="https://img.shields.io/npm/v/dsh-mcp-firecrawl?style=flat-square&label=dsh-mcp-firecrawl&color=cb3837" alt="dsh-mcp-firecrawl on npm"></a>
+  <a href="https://www.npmjs.com/package/dsh-mcp-context7"><img src="https://img.shields.io/npm/v/dsh-mcp-context7?style=flat-square&label=dsh-mcp-context7&color=cb3837" alt="dsh-mcp-context7 on npm"></a>
