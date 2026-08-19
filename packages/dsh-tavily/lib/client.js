@@ -95,3 +95,100 @@ window.__ModuleLoader__.load({
           keyWritable: this.keyWritable,
           enabledWritable: this.enabledWritable,
           draftKey: this.draftKey,
+          clearKey: this.clearKey,
+          dirty,
+          saving: this.saving,
+          failed: this.failed,
+          probing: this.probing,
+          probeStatus: this.probeStatus,
+          probeFail: this.probeFail,
+        };
+      }
+
+      publish() {
+        this.store.set(this.projection());
+      }
+
+      async describe(ref) {
+        try {
+          const response = await this.api.credentials.describe({ refs: [ref] });
+          if (!response.result.ok) return { configured: false, writable: true };
+          return response.result.value.credentials[ref] ?? { configured: false, writable: true };
+        } catch {
+          return { configured: false, writable: true };
+        }
+      }
+
+      async refresh() {
+        const enabled = await this.describe(ENABLED_REF);
+        const key = await this.describe(KEY_REF);
+        // describe() is value-free: presence of TAVILY_SEARCH_ENABLED means on.
+        this.enabled = !!enabled.configured;
+        this.enabledWritable = enabled.writable ?? true;
+        this.keyConfigured = !!key.configured;
+        this.keyWritable = key.writable ?? true;
+        this.draftEnabled = this.enabled;
+        this.draftKey = "";
+        this.clearKey = false;
+        this.failed = false;
+        this.probeStatus = "idle";
+        this.probeFail = null;
+        this.publish();
+      }
+
+      resetProbe() {
+        if (this.probing) return;
+        this.probeStatus = "idle";
+        this.probeFail = null;
+      }
+
+      inject() {
+        return {
+          hooks: { tavilyCard: this.store },
+          setEnabled: (value) => {
+            this.draftEnabled = value;
+            this.failed = false;
+            this.resetProbe();
+            this.publish();
+          },
+          setKey: (text) => {
+            this.draftKey = text;
+            this.clearKey = false;
+            this.failed = false;
+            this.resetProbe();
+            this.publish();
+          },
+          stageClearKey: () => {
+            this.draftKey = "";
+            this.clearKey = true;
+            this.failed = false;
+            this.resetProbe();
+            this.publish();
+          },
+          discard: () => {
+            this.draftEnabled = this.enabled;
+            this.draftKey = "";
+            this.clearKey = false;
+            this.failed = false;
+            this.resetProbe();
+            this.publish();
+          },
+          save: () => this.save(),
+          probe: () => this.probe(),
+        };
+      }
+
+      async probe() {
+        if (this.probing || this.saving) return;
+        this.probing = true;
+        this.probeStatus = "testing";
+        this.probeFail = null;
+        this.publish();
+        try {
+          const draft = this.draftKey.trim();
+          const body = {};
+          if (draft) body.apiKey = draft;
+          else if (this.clearKey) body.clearKey = true;
+          const response = await fetch("/api/tavily-probe", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
