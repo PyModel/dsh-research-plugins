@@ -71,3 +71,6 @@ The MCP bridges use the harness's shipped `@deepseek-ai/dsh-mcp-client`. They re
 |---|---|---|---|
 | `dsh-tavily` (MCP part) | `TAVILY_API_KEY` | yes (MCP only; search is keyless) | `https://mcp.tavily.com/mcp` |
 | `dsh-mcp-firecrawl` | `FIRECRAWL_API_KEY` | yes | `https://mcp.firecrawl.dev/v2/mcp` |
+| `dsh-mcp-context7` | `CONTEXT7_API_KEY` | no (keyless works) | `https://mcp.context7.com/mcp` |
+
+Rows gated on a key are disabled automatically when the key is absent, so no half-working tools appear. A key added to `.env` needs a `dsh web` restart.
