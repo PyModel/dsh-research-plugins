@@ -65,3 +65,6 @@ dsh plugin --profile web add github:PyModel/dsh-research-plugins#path:packages/d
 
 ## API keys
 
+The MCP bridges use the harness's shipped `@deepseek-ai/dsh-mcp-client`. They read keys from the **launch environment** (a real env var, the project `.env`, or `$DSH_HOME/.env`) — not from `$DSH_HOME/.credentials.yaml`:
+
+| Plugin | Env var | Required | Endpoint |
