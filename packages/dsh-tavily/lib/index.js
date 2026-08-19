@@ -262,3 +262,40 @@ export function apply(ctx, config) {
     apiKeyEnv,
     baseURL: config.baseURL || TAVILY_HOST,
     allowCustomBaseURL: config.allowCustomBaseURL === true,
+    maxResults: config.maxResults || 5,
+    searchTimeoutMs: config.searchTimeoutMs || DEFAULT_TIMEOUT_MS,
+    deepseek,
+  })));
+
+  ctx.webServer.register({
+    kind: "exact",
+    path: "/api/tavily-probe",
+    handler: async (req, res) => {
+      if (req.method !== "POST") {
+        return sendJson(res, 405, { ok: false, code: "other", error: "method not allowed" });
+      }
+      try {
+        const body = await readJsonBody(req);
+        const draft = typeof body.apiKey === "string" ? body.apiKey.trim() : "";
+        const clearKey = body.clearKey === true;
+        let apiKey;
+        if (draft.length > 0) apiKey = draft.slice(0, 512);
+        else if (!clearKey) apiKey = await resolveRef(ctx, apiKeyEnv, config.apiKey);
+        const mode = apiKey ? "key" : "keyless";
+        await searchTavily("tavily", {
+          apiKey,
+          baseURL: config.baseURL || TAVILY_HOST,
+          allowCustomBaseURL: config.allowCustomBaseURL === true,
+          maxResults: 1,
+          searchTimeoutMs: config.searchTimeoutMs || DEFAULT_TIMEOUT_MS,
+        });
+        return sendJson(res, 200, { ok: true, mode });
+      } catch (error) {
+        if (error instanceof Error && (error.message === "invalid JSON body" || error.message === "body too large")) {
+          return sendJson(res, 400, { ok: false, code: "other", error: error.message });
+        }
+        return sendJson(res, 200, { ok: false, ...classifyProbeError(error) });
+      }
+    },
+  });
+}
