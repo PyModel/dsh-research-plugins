@@ -192,3 +192,101 @@ window.__ModuleLoader__.load({
           const response = await fetch("/api/tavily-probe", {
             method: "POST",
             headers: { "content-type": "application/json" },
+            cache: "no-store",
+            body: JSON.stringify(body),
+          });
+          let json = {};
+          try {
+            json = await response.json();
+          } catch {
+            json = {};
+          }
+          if (response.status === 404) {
+            this.probeStatus = "fail";
+            this.probeFail = { code: "unavailable" };
+          } else if (json && json.ok === true) {
+            this.probeStatus = "ok";
+            this.probeFail = null;
+          } else {
+            this.probeStatus = "fail";
+            this.probeFail = {
+              code: typeof json.code === "string" ? json.code : "other",
+              status: typeof json.status === "number" ? json.status : response.status,
+              error: typeof json.error === "string" ? json.error : "",
+            };
+          }
+        } catch {
+          this.probeStatus = "fail";
+          this.probeFail = { code: "network" };
+        }
+        this.probing = false;
+        this.publish();
+      }
+
+      async save() {
+        if (this.saving) return;
+        this.saving = true;
+        this.failed = false;
+        this.publish();
+        try {
+          if (this.enabledWritable) {
+            if (this.draftEnabled) await this.api.credentials.set({ ref: ENABLED_REF, value: "true" });
+            else await this.api.credentials.unset({ ref: ENABLED_REF });
+          }
+          const key = this.draftKey.trim();
+          if (this.keyWritable) {
+            if (key) await this.api.credentials.set({ ref: KEY_REF, value: key });
+            else if (this.clearKey) await this.api.credentials.unset({ ref: KEY_REF });
+          }
+          await this.refresh();
+        } catch {
+          this.failed = true;
+          this.saving = false;
+          this.publish();
+          return;
+        }
+        this.saving = false;
+        this.publish();
+      }
+    }
+
+    function probeFailText(t, fail) {
+      const prefix = t ? t("probeFail") : "Failed: ";
+      const code = fail && fail.code;
+      if (code === "timeout") return prefix + (t ? t("probeTimeout") : "timed out");
+      if (code === "invalid_key") return prefix + (t ? t("probeInvalidKey") : "invalid key");
+      if (code === "network") return prefix + (t ? t("probeNetwork") : "network error");
+      if (code === "unavailable") return prefix + (t ? t("probeUnavailable") : "test endpoint unavailable");
+      if (code === "http") return prefix + "HTTP " + (fail.status || "");
+      const extra = fail && fail.error ? fail.error : "";
+      return prefix + (extra || (t ? t("probeUnknown") : "unknown error"));
+    }
+
+    function TavilyCard(props) {
+      const { t } = props;
+      const state = props.useTavilyCard((s) => s);
+      const [open, setOpen] = react.useState(false);
+      const blocked = !state.dirty || state.saving;
+      const title = t ? t("title") : "Tavily web search";
+      const description = t ? t("description") : "On: Tavily (works without a key). Off: official DeepSeek.";
+      return react_jsx_runtime.jsxs("li", {
+        className: open ? "tvly_card tvly_cardOpen" : "tvly_card",
+        children: [
+          react_jsx_runtime.jsxs("button", {
+            type: "button",
+            className: "tvly_head",
+            "aria-expanded": open,
+            onClick: () => setOpen(!open),
+            children: [
+              react_jsx_runtime.jsxs("span", {
+                className: "tvly_headText",
+                children: [
+                  react_jsx_runtime.jsx("span", { className: "tvly_name", children: title }),
+                  react_jsx_runtime.jsx("span", { className: "tvly_desc", children: description }),
+                ],
+              }),
+              state.dirty ? react_jsx_runtime.jsx("span", { className: "tvly_pending", children: t ? t("unsaved") : "Unsaved" }) : null,
+              react_jsx_runtime.jsx("svg", {
+                className: open ? "tvly_chevron tvly_chevronOpen" : "tvly_chevron",
+                width: 14,
+                height: 14,
