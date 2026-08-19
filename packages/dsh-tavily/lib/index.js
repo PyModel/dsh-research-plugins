@@ -224,3 +224,41 @@ class TavilySearchProvider {
   async search(request, signal) {
     const options = this.resolveOptions();
     throwIfAborted(signal);
+    const enabled = truthy(await resolveRef(options.ctx, ENABLED_REF));
+    if (!enabled) {
+      return options.deepseek.search(request, signal);
+    }
+    const apiKey = await resolveRef(options.ctx, options.apiKeyEnv, options.apiKey);
+    return searchTavily(request.query, {
+      apiKey,
+      baseURL: options.baseURL,
+      allowCustomBaseURL: options.allowCustomBaseURL,
+      maxResults: request.maxResults ?? options.maxResults,
+      searchTimeoutMs: options.searchTimeoutMs,
+    }, signal);
+  }
+}
+
+export function apply(ctx, config) {
+  // Dispatch namespace for Plugin configuration. Toggle/key stay on credentials.
+  ctx.settings.register("web-search-tavily", Config);
+  const apiKeyEnv = config.apiKeyEnv || DEFAULT_KEY_ENV;
+  const deepseek = new DeepSeekSearchProvider(() => {
+    const keyEnv = credentialRef("DEEPSEEK_API_KEY");
+    return {
+      resolveApiKey: async () => resolveRef(ctx, "DEEPSEEK_API_KEY"),
+      apiKeyEnv: keyEnv,
+      baseURL: DEEPSEEK_DEFAULT_BASE_URL,
+      model: DEEPSEEK_DEFAULT_MODEL,
+      apiVersion: DEEPSEEK_DEFAULT_API_VERSION,
+      maxTokens: DEEPSEEK_DEFAULT_MAX_TOKENS,
+      maxUses: DEEPSEEK_DEFAULT_MAX_USES,
+    };
+  });
+
+  ctx.web.registerSearchProvider(new TavilySearchProvider(() => ({
+    ctx,
+    apiKey: config.apiKey,
+    apiKeyEnv,
+    baseURL: config.baseURL || TAVILY_HOST,
+    allowCustomBaseURL: config.allowCustomBaseURL === true,
