@@ -68,3 +68,6 @@ dsh plugin --profile web add github:PyModel/dsh-research-plugins#path:packages/d
 The MCP bridges use the harness's shipped `@deepseek-ai/dsh-mcp-client`. They read keys from the **launch environment** (a real env var, the project `.env`, or `$DSH_HOME/.env`) — not from `$DSH_HOME/.credentials.yaml`:
 
 | Plugin | Env var | Required | Endpoint |
+|---|---|---|---|
+| `dsh-tavily` (MCP part) | `TAVILY_API_KEY` | yes (MCP only; search is keyless) | `https://mcp.tavily.com/mcp` |
+| `dsh-mcp-firecrawl` | `FIRECRAWL_API_KEY` | yes | `https://mcp.firecrawl.dev/v2/mcp` |
