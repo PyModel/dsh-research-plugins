@@ -59,3 +59,6 @@ Or follow GitHub (this repo, latest commits):
 dsh plugin --profile web add github:PyModel/dsh-research-plugins#path:packages/dsh-tavily
 dsh plugin --profile web add github:PyModel/dsh-research-plugins#path:packages/dsh-mcp-firecrawl
 dsh plugin --profile web add github:PyModel/dsh-research-plugins#path:packages/dsh-mcp-context7
+```
+
+---
