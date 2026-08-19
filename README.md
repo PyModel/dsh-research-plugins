@@ -84,3 +84,6 @@ packages/
   dsh-tavily/          # web-search provider + settings card + Tavily MCP row
   dsh-mcp-firecrawl/   # pure-config Firecrawl MCP bundle
   dsh-mcp-context7/    # pure-config Context7 MCP bundle
+```
+
+The Firecrawl and Context7 packages are pure-config bundles (`package.json` + `cordis.patch.yml`) with no build step. The Tavily package keeps its prebuilt `lib/` and browser client.
