@@ -96,3 +96,6 @@ Issues and pull requests are welcome. Please open a discussion on [GitHub](https
 
 ---
 
+## Author
+
+**[elkaix](https://github.com/elkaix)** · [pymodel](https://github.com/pymodel)
