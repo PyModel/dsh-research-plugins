@@ -87,3 +87,6 @@ packages/
 ```
 
 The Firecrawl and Context7 packages are pure-config bundles (`package.json` + `cordis.patch.yml`) with no build step. The Tavily package keeps its prebuilt `lib/` and browser client.
+
+---
+
