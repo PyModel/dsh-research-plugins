@@ -77,3 +77,7 @@ Rows gated on a key are disabled automatically when the key is absent, so no hal
 
 ---
 
+## Repo layout
+
+```text
+packages/
