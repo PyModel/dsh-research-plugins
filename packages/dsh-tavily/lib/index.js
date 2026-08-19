@@ -187,3 +187,40 @@ async function searchTavily(query, opts, signal) {
         chunks_per_source: 3,
         include_answer: false,
         include_raw_content: false,
+        include_images: false,
+      }),
+      ...(requestSignal ? { signal: requestSignal } : {}),
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "TimeoutError") {
+      throw new WebError(`Tavily search timed out after ${opts.searchTimeoutMs}ms`, "WEB_PROVIDER_ERROR", { cause: error });
+    }
+    if (signal?.aborted || isAbortError(error)) throw new WebError("Tavily search aborted", "WEB_ABORTED", { cause: error });
+    throw new WebError(`Tavily request failed: ${String(error)}`, "WEB_PROVIDER_ERROR", { cause: error });
+  }
+  if (!res.ok) {
+    if (signal?.aborted) throwIfAborted(signal);
+    throw new WebError(await tavilyErrorText(res), "WEB_PROVIDER_ERROR");
+  }
+  try {
+    return toSources(await res.json());
+  } catch (error) {
+    if (signal?.aborted || isAbortError(error)) throw new WebError("Tavily search aborted", "WEB_ABORTED", { cause: error });
+    throw new WebError(`Tavily returned an unprocessable response: ${String(error)}`, "WEB_PROVIDER_ERROR", { cause: error });
+  }
+}
+
+class TavilySearchProvider {
+  id = TAVILY_PROVIDER_ID;
+
+  constructor(resolveOptions) {
+    this.resolveOptions = resolveOptions;
+  }
+
+  available() {
+    return true;
+  }
+
+  async search(request, signal) {
+    const options = this.resolveOptions();
+    throwIfAborted(signal);
