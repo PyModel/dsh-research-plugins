@@ -62,3 +62,6 @@ dsh plugin --profile web add github:PyModel/dsh-research-plugins#path:packages/d
 ```
 
 ---
+
+## API keys
+
