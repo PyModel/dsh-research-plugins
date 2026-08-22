@@ -1,6 +1,6 @@
 {
   "name": "dsh-research-plugins",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "DeepSeek Harness research plugins: Tavily web search + Firecrawl, Context7, and Tavily MCP bridges",

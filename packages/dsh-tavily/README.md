@@ -41,6 +41,10 @@ dsh plugin --profile web remove dsh-tavily
 - No key uses Tavily keyless; a key uses `Authorization: Bearer`
 - Bottom-left connection test: one real Tavily search (`max_results: 1`); keyless if no key, account quota if a key is saved (1 credit)
 - Timeout, abort, official host lock, drop results without a url
+- Settings card design refresh: collapsed-header mode badge (Official DeepSeek / Tavily keyless / Tavily API key) with a status dot, so the active provider is visible at a glance
+- Accessible async feedback: polite live-region announcements for connection-test and save outcomes, inline button spinners, connected-success tint — all honoring `prefers-reduced-motion`
+- Show/hide reveal for the API key input (with autocomplete and spellcheck off)
+- Opt-in adoption of the latest Tavily Search parameters via plugin config: `searchDepth` (`basic` / `advanced` / `fast`) and `autoParameters` (lets Tavily tune topic and depth per query; explicit values still win)
 - Key and toggle live on the credentials plane, not the settings file
 - Tavily MCP bridge: `mcp__tavily__tavily-search` / `tavily-extract` work keyless; `crawl` / `map` unlock with `TAVILY_API_KEY`
 
@@ -86,6 +90,7 @@ The search key and toggle are stored on the credentials plane (`$DSH_HOME/.crede
 
 ## Updates
 
+- **0.3.0** Settings-card design refresh informed by current UI/a11y guidance (ARIA live regions for async status, `prefers-reduced-motion` support): header mode badge with status dot, spinner states on Test/Save, saved confirmation announcement, show/hide key toggle. Server provider adopts the latest Tavily Search API surface behind opt-in config: `searchDepth` including the new `fast` tier, and `auto_parameters`.
 - **0.2.0** MCP bridge: keyless mode via `X-Tavily-Access-Mode: keyless` (row always on); keyed auth moved from URL query parameter to `Authorization: Bearer` header. Search provider: caller cancellation preserved on runtimes without `AbortSignal.any`.
 - **0.1.0** First release as `@pymodel/dsh-tavily`. Web search provider with settings toggle (off = official DeepSeek, on = Tavily) plus a Tavily MCP bridge (extract / crawl / map). English-only localisation.
 

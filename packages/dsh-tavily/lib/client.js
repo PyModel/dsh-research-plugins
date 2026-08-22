@@ -16,7 +16,7 @@ window.__ModuleLoader__.load({
       const prev = document.querySelector("style[data-tavily-search-css]");
       if (prev) prev.remove();
       const tag = document.createElement("style");
-      tag.setAttribute("data-tavily-search-css", "7");
+      tag.setAttribute("data-tavily-search-css", "8");
       tag.textContent = [
         ".tvly_card{list-style:none;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-3);transition:border-color .16s,background .16s}",
         ".tvly_card:hover{border-color:var(--dsw-alias-label-dimmed)}",
@@ -57,12 +57,27 @@ window.__ModuleLoader__.load({
         ".tvly_probeFail{color:var(--dsw-alias-label-error)}",
         ".tvly_actions{display:flex;align-items:center;gap:8px;flex:none;margin-left:auto}",
         ".tvly_failed{margin:0;font-size:12px;line-height:1.5;color:var(--dsw-alias-label-error);white-space:nowrap}",
-        ".tvly_discard,.tvly_save,.tvly_probeBtn{appearance:none;border:1px solid transparent;border-radius:8px;padding:5px 14px;font:inherit;font-size:13px;line-height:1.5;cursor:pointer}",
+        ".tvly_discard,.tvly_save,.tvly_probeBtn{appearance:none;border:1px solid transparent;border-radius:8px;padding:5px 14px;font:inherit;font-size:13px;line-height:1.5;cursor:pointer;transition:transform .12s,opacity .16s,border-color .16s,color .16s,background .16s}",
         ".tvly_discard,.tvly_probeBtn{border-color:var(--dsw-alias-border-l2);background:none;color:var(--dsw-alias-label-secondary)}",
         ".tvly_discard:hover:not(:disabled),.tvly_probeBtn:hover:not(:disabled){color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-label-dimmed)}",
         ".tvly_save{background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-layer-3)}",
         ".tvly_discard:disabled,.tvly_save:disabled,.tvly_probeBtn:disabled{opacity:.4;cursor:default}",
         ".tvly_discard:focus-visible,.tvly_save:focus-visible,.tvly_probeBtn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}",
+        ".tvly_pills{flex:none;display:flex;align-items:center;gap:6px}",
+        ".tvly_mode{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:1px 8px;font-size:11px;line-height:17px;font-weight:500;white-space:nowrap;background:var(--dsw-alias-bg-module-platform);color:var(--dsw-alias-label-secondary)}",
+        ".tvly_dot{flex:none;width:6px;height:6px;border-radius:50%;background:var(--dsw-alias-label-tertiary)}",
+        ".tvly_dotOn{background:var(--dsw-alias-brand-primary)}",
+        ".tvly_probeOk{color:var(--dsw-alias-brand-primary)}",
+        ".tvly_live{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);border:0;white-space:nowrap}",
+        ".tvly_spin{flex:none;width:12px;height:12px;border-radius:50%;border:2px solid currentColor;border-top-color:transparent;display:inline-block;animation:tvly-rot .7s linear infinite}",
+        "@keyframes tvly-rot{to{transform:rotate(360deg)}}",
+        ".tvly_input:hover:not(:disabled):not(:focus-visible){border-color:var(--dsw-alias-label-dimmed)}",
+        ".tvly_eye{flex:none;appearance:none;border:0;background:none;padding:0;font:inherit;font-size:12px;line-height:17px;color:var(--dsw-alias-label-secondary);cursor:pointer;white-space:nowrap}",
+        ".tvly_eye:hover{color:var(--dsw-alias-label-primary)}",
+        ".tvly_eye[aria-pressed=\"true\"]{color:var(--dsw-alias-brand-primary)}",
+        ".tvly_eye:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}",
+        ".tvly_discard:active:not(:disabled),.tvly_save:active:not(:disabled),.tvly_probeBtn:active:not(:disabled){transform:scale(.97)}",
+        "@media (prefers-reduced-motion:reduce){.tvly_card,.tvly_chevron,.tvly_switchTrack,.tvly_switchTrack::after,.tvly_discard,.tvly_save,.tvly_probeBtn{transition:none}.tvly_spin{animation:none;opacity:.7}.tvly_discard:active:not(:disabled),.tvly_save:active:not(:disabled),.tvly_probeBtn:active:not(:disabled){transform:none}}",
       ].join("");
       document.head.appendChild(tag);
       return () => tag.remove();
@@ -72,6 +87,7 @@ window.__ModuleLoader__.load({
       constructor(api) {
         this.api = api;
         this.enabled = false;
+        this.savedEnabled = false;
         this.keyConfigured = false;
         this.keyWritable = true;
         this.enabledWritable = true;
@@ -81,6 +97,7 @@ window.__ModuleLoader__.load({
         this.saving = false;
         this.failed = false;
         this.probing = false;
+        this.justSaved = false;
         this.probeStatus = "idle";
         this.probeFail = null;
         this.store = _client_runtime.createSnapshotStore(this.projection());
@@ -91,7 +108,9 @@ window.__ModuleLoader__.load({
         const dirty = this.draftEnabled !== this.enabled || this.draftKey.trim() !== "" || this.clearKey;
         return {
           enabled: this.draftEnabled,
+          savedEnabled: this.savedEnabled,
           keyConfigured: this.keyConfigured,
+          justSaved: this.justSaved,
           keyWritable: this.keyWritable,
           enabledWritable: this.enabledWritable,
           draftKey: this.draftKey,
@@ -124,6 +143,7 @@ window.__ModuleLoader__.load({
         const key = await this.describe(KEY_REF);
         // describe() is value-free: presence of TAVILY_SEARCH_ENABLED means on.
         this.enabled = !!enabled.configured;
+        this.savedEnabled = this.enabled;
         this.enabledWritable = enabled.writable ?? true;
         this.keyConfigured = !!key.configured;
         this.keyWritable = key.writable ?? true;
@@ -148,6 +168,7 @@ window.__ModuleLoader__.load({
           setEnabled: (value) => {
             this.draftEnabled = value;
             this.failed = false;
+            this.justSaved = false;
             this.resetProbe();
             this.publish();
           },
@@ -155,6 +176,7 @@ window.__ModuleLoader__.load({
             this.draftKey = text;
             this.clearKey = false;
             this.failed = false;
+            this.justSaved = false;
             this.resetProbe();
             this.publish();
           },
@@ -162,6 +184,7 @@ window.__ModuleLoader__.load({
             this.draftKey = "";
             this.clearKey = true;
             this.failed = false;
+            this.justSaved = false;
             this.resetProbe();
             this.publish();
           },
@@ -239,6 +262,7 @@ window.__ModuleLoader__.load({
             else if (this.clearKey) await this.api.credentials.unset({ ref: KEY_REF });
           }
           await this.refresh();
+          this.justSaved = true;
         } catch {
           this.failed = true;
           this.saving = false;
@@ -266,6 +290,7 @@ window.__ModuleLoader__.load({
       const { t } = props;
       const state = props.useTavilyCard((s) => s);
       const [open, setOpen] = react.useState(false);
+      const [showKey, setShowKey] = react.useState(false);
       const blocked = !state.dirty || state.saving;
       const title = t ? t("title") : "Tavily web search";
       const description = t ? t("description") : "On: Tavily (works without a key). Off: official DeepSeek.";
@@ -285,7 +310,21 @@ window.__ModuleLoader__.load({
                   react_jsx_runtime.jsx("span", { className: "tvly_desc", children: description }),
                 ],
               }),
-              state.dirty ? react_jsx_runtime.jsx("span", { className: "tvly_pending", children: t ? t("unsaved") : "Unsaved" }) : null,
+              react_jsx_runtime.jsxs("span", {
+                className: "tvly_pills",
+                children: [
+                  react_jsx_runtime.jsxs("span", {
+                    className: "tvly_mode",
+                    children: [
+                      react_jsx_runtime.jsx("span", { className: state.savedEnabled ? "tvly_dot tvly_dotOn" : "tvly_dot", "aria-hidden": true }),
+                      state.savedEnabled
+                        ? (state.keyConfigured ? (t ? t("modeKey") : "Tavily · API key") : (t ? t("modeKeyless") : "Tavily · keyless"))
+                        : (t ? t("modeDeepseek") : "Official DeepSeek"),
+                    ],
+                  }),
+                  state.dirty ? react_jsx_runtime.jsx("span", { className: "tvly_pending", children: t ? t("unsaved") : "Unsaved" }) : null,
+                ],
+              }),
               react_jsx_runtime.jsx("svg", {
                 className: open ? "tvly_chevron tvly_chevronOpen" : "tvly_chevron",
                 width: 14,
@@ -345,6 +384,15 @@ window.__ModuleLoader__.load({
                             ? (t ? t("keyOk") : "Key configured")
                             : (t ? t("keyMissing") : "No key — keyless"),
                       }),
+                      state.draftKey
+                        ? react_jsx_runtime.jsx("button", {
+                            type: "button",
+                            className: "tvly_eye",
+                            "aria-pressed": showKey,
+                            onClick: () => setShowKey(!showKey),
+                            children: showKey ? (t ? t("hideKey") : "Hide") : (t ? t("showKey") : "Show"),
+                          })
+                        : null,
                       state.keyConfigured && state.keyWritable && !state.clearKey
                         ? react_jsx_runtime.jsx("button", {
                             type: "button",
@@ -358,7 +406,9 @@ window.__ModuleLoader__.load({
                   }),
                   react_jsx_runtime.jsx("input", {
                     className: "tvly_input",
-                    type: "password",
+                    type: showKey ? "text" : "password",
+                    autoComplete: "off",
+                    spellCheck: false,
                     placeholder: state.clearKey
                       ? (t ? t("keyPlaceholderClear") : "Save to clear the current key.")
                       : state.keyConfigured
@@ -391,11 +441,14 @@ window.__ModuleLoader__.load({
                         title: t ? t("probeHint") : "Runs one real Tavily search. Uses 1 credit when a key is configured.",
                         onClick: props.probe,
                         children: state.probing
-                          ? (t ? t("probeTesting") : "Testing…")
+                          ? [
+                              react_jsx_runtime.jsx("span", { className: "tvly_spin", "aria-hidden": true }),
+                              (t ? t("probeTesting") : "Testing…"),
+                            ]
                           : (t ? t("probe") : "Test connection"),
                       }),
                       state.probeStatus === "ok"
-                        ? react_jsx_runtime.jsx("p", { className: "tvly_probeStatus", children: t ? t("probeOk") : "Connected" })
+                        ? react_jsx_runtime.jsx("p", { className: "tvly_probeStatus tvly_probeOk", children: t ? t("probeOk") : "Connected" })
                         : state.probeStatus === "fail"
                           ? react_jsx_runtime.jsx("p", { className: "tvly_probeStatus tvly_probeFail", children: probeFailText(t, state.probeFail) })
                           : null,
@@ -417,7 +470,12 @@ window.__ModuleLoader__.load({
                         className: "tvly_save",
                         disabled: blocked,
                         onClick: props.save,
-                        children: state.saving ? (t ? t("saving") : "Saving…") : (t ? t("save") : "Save"),
+                        children: state.saving
+                          ? [
+                              react_jsx_runtime.jsx("span", { className: "tvly_spin", "aria-hidden": true }),
+                              (t ? t("saving") : "Saving…"),
+                            ]
+                          : (t ? t("save") : "Save"),
                       }),
                     ],
                   }),
@@ -425,8 +483,21 @@ window.__ModuleLoader__.load({
               }),
             ],
           }) : null,
+          react_jsx_runtime.jsx("p", {
+            className: "tvly_live",
+            role: "status",
+            "aria-live": "polite",
+            children: liveText(t, state),
+          }),
         ],
       });
+    }
+
+    function liveText(t, state) {
+      if (state.probeStatus === "ok") return t ? t("probeOk") : "Connected";
+      if (state.probeStatus === "fail") return probeFailText(t, state.probeFail);
+      if (state.justSaved && !state.dirty) return t ? t("savedOk") : "Settings saved";
+      return "";
     }
 
     const inject = ["slots", "locale", "connection", "remote"];
@@ -462,6 +533,12 @@ window.__ModuleLoader__.load({
         probeUnavailable: "test endpoint unavailable",
         probeUnknown: "unknown error",
         probeHint: "Runs one real Tavily search. Uses 1 credit when a key is configured.",
+        modeDeepseek: "Official DeepSeek",
+        modeKeyless: "Tavily · keyless",
+        modeKey: "Tavily · API key",
+        showKey: "Show",
+        hideKey: "Hide",
+        savedOk: "Settings saved",
       };
       ctx.effect(() => injectCss(), "tavily css");
       ctx.effect(() => ctx.locale.register("web-search-tavily", { en }), "tavily locale");
