@@ -36,8 +36,8 @@ Everything is delivered as drop-in **DSH plugins** — no vendor lock-in, no for
 
 | Package | What it adds |
 |---|---|
-| [`@pymodel/dsh-tavily`](packages/dsh-tavily) | Tavily Search API as a web search provider (settings toggle, keyless search) + a Tavily MCP bridge for `extract` / `crawl` / `map` tools |
-| [`dsh-mcp-firecrawl`](packages/dsh-mcp-firecrawl) | Firecrawl MCP: `mcp__firecrawl__*` scrape, crawl, map, and search tools |
+| [`@pymodel/dsh-tavily`](packages/dsh-tavily) | Tavily Search API as a web search provider (settings toggle, keyless search) + a Tavily MCP bridge (`tavily-search` / `tavily-extract` keyless; `crawl` / `map` with a key) |
+| [`dsh-mcp-firecrawl`](packages/dsh-mcp-firecrawl) | Firecrawl MCP: keyless `search` / `scrape` / `parse`; full tool surface with an API key |
 | [`dsh-mcp-context7`](packages/dsh-mcp-context7) | Context7 MCP: `mcp__context7__*` up-to-date library docs and code examples |
 
 ---
@@ -69,11 +69,11 @@ The MCP bridges use the harness's shipped `@deepseek-ai/dsh-mcp-client`. They re
 
 | Plugin | Env var | Required | Endpoint |
 |---|---|---|---|
-| `dsh-tavily` (MCP part) | `TAVILY_API_KEY` | yes (MCP only; search is keyless) | `https://mcp.tavily.com/mcp` |
-| `dsh-mcp-firecrawl` | `FIRECRAWL_API_KEY` | yes | `https://mcp.firecrawl.dev/v2/mcp` |
+| `dsh-tavily` (MCP part) | `TAVILY_API_KEY` | no (keyless MCP: search + extract; crawl/map need a key) | `https://mcp.tavily.com/mcp/` |
+| `dsh-mcp-firecrawl` | `FIRECRAWL_API_KEY` | no (keyless: search/scrape/parse; full surface with a key) | `https://mcp.firecrawl.dev/v2/mcp` |
 | `dsh-mcp-context7` | `CONTEXT7_API_KEY` | no (keyless works) | `https://mcp.context7.com/mcp` |
 
-Rows gated on a key are disabled automatically when the key is absent, so no half-working tools appear. A key added to `.env` needs a `dsh web` restart.
+Keys are sent as an `Authorization: Bearer` header at load time — never in the URL and never in plain YAML. Without a key the bridges run in each vendor's documented keyless mode (`X-Tavily-Access-Mode: keyless` for Tavily), so every row works out of the box. A key added to `.env` needs a `dsh web` restart.
 
 ---
 

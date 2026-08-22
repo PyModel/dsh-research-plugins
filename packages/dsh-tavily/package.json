@@ -1,6 +1,6 @@
 {
   "name": "@pymodel/dsh-tavily",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "type": "module",
   "description": "Tavily web search + Tavily MCP for DSH: settings toggle to official DeepSeek, keyless search, MCP extract/crawl/map",
   "repository": {

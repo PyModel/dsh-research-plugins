@@ -62,7 +62,12 @@ function deadlineSignal(signal, timeoutMs) {
   const timer = AbortSignal.timeout(timeoutMs);
   if (!signal) return timer;
   if (typeof AbortSignal.any === "function") return AbortSignal.any([signal, timer]);
-  return timer;
+  // Fallback for runtimes without AbortSignal.any: forward BOTH sources onto a
+  // controller so caller cancellation is not silently dropped.
+  const controller = new AbortController();
+  signal.addEventListener("abort", () => controller.abort(signal.reason), { once: true });
+  timer.addEventListener("abort", () => controller.abort(timer.reason), { once: true });
+  return controller.signal;
 }
 
 async function resolveRef(ctx, envName, literal) {

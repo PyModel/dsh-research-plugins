@@ -8,18 +8,20 @@
     - id: web-search-tavily
       name: '@pymodel/dsh-tavily'
 
-# Tavily MCP bridge (extract / crawl / map tools) via the CLI-shipped mcp-client.
-# Enabled only when TAVILY_API_KEY is present in the launch environment
-# (a real env var, the project .env, or $DSH_HOME/.env). The key must never
-# sit in plain YAML: it is interpolated into the endpoint URL at load time.
+# Tavily MCP bridge (search / extract / crawl / map) via the CLI-shipped mcp-client.
+# Keyed: TAVILY_API_KEY from the launch environment (a real env var, the project
+# .env, or $DSH_HOME/.env) goes into the Authorization header — never into the
+# URL, where it would leak into logs and proxies. Keyless: the required
+# X-Tavily-Access-Mode: keyless header selects free rate-limited access with the
+# tavily-search and tavily-extract tools (crawl/map still need a key). The key
+# must never sit in plain YAML; it is interpolated into the header at load time.
 - insert:
     - id: mcp-tavily
       name: '@deepseek-ai/dsh-mcp-client'
-      disabled: !!js process.env.TAVILY_API_KEY === undefined
       config:
         serverName: tavily
         transport: streamable-http
-        url: !!js "'https://mcp.tavily.com/mcp/?tavilyApiKey=' + encodeURIComponent(process.env.TAVILY_API_KEY ?? '')"
-        headers: {}
+        url: https://mcp.tavily.com/mcp/
+        headers: !!js "(process.env.TAVILY_API_KEY ? { Authorization: 'Bearer ' + process.env.TAVILY_API_KEY } : { 'X-Tavily-Access-Mode': 'keyless' })"
         toolCallTimeoutMs: 60000
         failOnStartupError: false

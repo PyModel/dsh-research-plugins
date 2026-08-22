@@ -1,6 +1,6 @@
 # dsh-mcp-firecrawl
 
-[Firecrawl](https://www.firecrawl.dev/) MCP for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness). Connects the official hosted Firecrawl MCP server through the harness's `@deepseek-ai/dsh-mcp-client` bridge and exposes its tools as `mcp__firecrawl__*` — scrape, crawl, map, and search.
+[Firecrawl](https://www.firecrawl.dev/) MCP for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness). Connects the official hosted Firecrawl MCP server through the harness's `@deepseek-ai/dsh-mcp-client` bridge and exposes its tools as `mcp__firecrawl__*`. Works keyless out of the box (`search`, `scrape`, `parse` within daily limits); a Firecrawl API key unlocks the full tool surface — scrape, crawl, map, and more.
 
 ## Install
 
@@ -15,9 +15,11 @@ Or follow GitHub (latest commit):
 dsh plugin --profile web add github:pymodel/dsh-research-plugins#path:packages/dsh-mcp-firecrawl
 ```
 
-## API key
+## API key (optional)
 
-The hosted server requires a Firecrawl API key. Get one at [firecrawl.dev](https://www.firecrawl.dev/) (format `fc-...`), then make it visible to the launch environment in one of:
+Keyless needs no setup: the row is always enabled and starts with `firecrawl_search`, `firecrawl_scrape`, and `firecrawl_parse` at daily keyless limits.
+
+For the full tool surface and higher limits, get a Firecrawl API key at [firecrawl.dev](https://www.firecrawl.dev/) (format `fc-...`) and make it visible to the launch environment in one of:
 
 ```sh
 export FIRECRAWL_API_KEY=fc-...
@@ -29,11 +31,11 @@ or a project `.env` / `$DSH_HOME/.env`:
 FIRECRAWL_API_KEY=fc-...
 ```
 
-The MCP row is disabled automatically when the key is absent, so no half-working tools appear. A key added to `.env` needs a `dsh web` restart to take effect.
+The key goes into the `Authorization: Bearer` header at load time — never into the MCP URL and never into YAML. A key added to `.env` needs a `dsh web` restart.
 
 ## Tools
 
-After the key is set, the model sees the Firecrawl tools under the `firecrawl` namespace (for example `mcp__firecrawl__firecrawl_scrape`, `mcp__firecrawl__firecrawl_crawl`, `mcp__firecrawl__firecrawl_map`, `mcp__firecrawl__firecrawl_search`).
+After connecting, the model sees the Firecrawl tools under the `firecrawl` namespace: `mcp__firecrawl__firecrawl_search`, `mcp__firecrawl__firecrawl_scrape`, and `mcp__firecrawl__firecrawl_parse` keyless, plus the full surface such as `mcp__firecrawl__firecrawl_crawl` and `mcp__firecrawl__firecrawl_map` once an API key is set.
 
 ## Remove
 

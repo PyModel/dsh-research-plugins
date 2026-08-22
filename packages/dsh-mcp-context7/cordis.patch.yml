@@ -1,6 +1,8 @@
 # Context7 MCP bridge via the CLI-shipped mcp-client.
-# Works keyless; when CONTEXT7_API_KEY is present in the launch environment it is
-# attached as a Bearer header for higher limits. The key must never sit in plain YAML.
+# Works keyless (no auth header is sent); when CONTEXT7_API_KEY is present in
+# the launch environment it is attached as a Bearer header for higher limits.
+# An empty Bearer credential is never transmitted. The key must never sit in
+# plain YAML; it is interpolated into the header at load time.
 - insert:
     - id: mcp-context7
       name: '@deepseek-ai/dsh-mcp-client'
@@ -8,7 +10,6 @@
         serverName: context7
         transport: streamable-http
         url: https://mcp.context7.com/mcp
-        headers:
-          Authorization: !!js "'Bearer ' + (process.env.CONTEXT7_API_KEY ?? '')"
+        headers: !!js "(process.env.CONTEXT7_API_KEY ? { Authorization: 'Bearer ' + process.env.CONTEXT7_API_KEY } : {})"
         toolCallTimeoutMs: 60000
         failOnStartupError: false

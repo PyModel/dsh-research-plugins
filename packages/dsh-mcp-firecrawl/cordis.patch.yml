@@ -1,16 +1,16 @@
-# Firecrawl MCP bridge via the CLI-shipped mcp-client.
-# Enabled only when FIRECRAWL_API_KEY is present in the launch environment
-# (a real env var, the project .env, or $DSH_HOME/.env). The key must never
-# sit in plain YAML: it is interpolated into the Authorization header at load time.
+# Firecrawl MCP bridge via the CLI-shipped mcp-client. One endpoint, two modes
+# per Firecrawl's docs: keyless (no auth header) exposes firecrawl_search /
+# firecrawl_scrape / firecrawl_parse within daily limits; FIRECRAWL_API_KEY from
+# the launch environment (a real env var, the project .env, or $DSH_HOME/.env)
+# unlocks the full tool surface as a Bearer header. The key must never sit in
+# plain YAML or in the MCP URL: it is interpolated into the header at load time.
 - insert:
     - id: mcp-firecrawl
       name: '@deepseek-ai/dsh-mcp-client'
-      disabled: !!js process.env.FIRECRAWL_API_KEY === undefined
       config:
         serverName: firecrawl
         transport: streamable-http
         url: https://mcp.firecrawl.dev/v2/mcp
-        headers:
-          Authorization: !!js "'Bearer ' + (process.env.FIRECRAWL_API_KEY ?? '')"
+        headers: !!js "(process.env.FIRECRAWL_API_KEY ? { Authorization: 'Bearer ' + process.env.FIRECRAWL_API_KEY } : {})"
         toolCallTimeoutMs: 60000
         failOnStartupError: false
