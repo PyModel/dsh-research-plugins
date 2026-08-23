@@ -29,6 +29,8 @@ export const Config = z.object({
   allowCustomBaseURL: z.boolean().default(false),
   maxResults: z.number().step(1).min(1).max(20).default(5),
   searchTimeoutMs: z.number().step(1).min(1).default(DEFAULT_TIMEOUT_MS),
+  searchDepth: z.string().default("basic"),
+  autoParameters: z.boolean().default(false),
 });
 
 function throwIfAborted(signal) {
@@ -81,6 +83,13 @@ async function resolveRef(ctx, envName, literal) {
   const env = launchEnvironmentOf(ctx).get(ref);
   if (env?.value && env.value.length > 0) return env.value;
   return undefined;
+}
+
+/** Tavily search_depth tiers as of the current API: basic | advanced | fast. */
+const SEARCH_DEPTHS = ["basic", "advanced", "fast"];
+
+function normalizedSearchDepth(depth) {
+  return SEARCH_DEPTHS.includes(depth) ? depth : "basic";
 }
 
 function tavilyHeaders(apiKey) {
@@ -188,8 +197,9 @@ async function searchTavily(query, opts, signal) {
       body: JSON.stringify({
         query,
         max_results: opts.maxResults,
-        search_depth: "basic",
+        search_depth: normalizedSearchDepth(opts.searchDepth),
         chunks_per_source: 3,
+        auto_parameters: opts.autoParameters === true,
         include_answer: false,
         include_raw_content: false,
         include_images: false,
@@ -239,6 +249,8 @@ class TavilySearchProvider {
       baseURL: options.baseURL,
       allowCustomBaseURL: options.allowCustomBaseURL,
       maxResults: request.maxResults ?? options.maxResults,
+      searchDepth: options.searchDepth,
+      autoParameters: options.autoParameters,
       searchTimeoutMs: options.searchTimeoutMs,
     }, signal);
   }
@@ -268,6 +280,8 @@ export function apply(ctx, config) {
     baseURL: config.baseURL || TAVILY_HOST,
     allowCustomBaseURL: config.allowCustomBaseURL === true,
     maxResults: config.maxResults || 5,
+    searchDepth: config.searchDepth || "basic",
+    autoParameters: config.autoParameters === true,
     searchTimeoutMs: config.searchTimeoutMs || DEFAULT_TIMEOUT_MS,
     deepseek,
   })));
