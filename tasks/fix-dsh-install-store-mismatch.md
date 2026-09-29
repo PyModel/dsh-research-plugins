@@ -1,20 +1,18 @@
 # Fix: dsh-market plugin install fails with ERR_PNPM_UNEXPECTED_STORE (DSH Desktop)
 
-Status: FIXED on this machine 2026-09-20 — all four layers applied.
+Status: FIXED on this machine 2026-09-20 by the profile workaround (change 1
+below). Status as of 2026-09-28:
 
-Local app bundle patched 2026-09-20 (TCC bypassed via rename → fresh copy →
-patch; ad-hoc re-signed, SIGNATURE-VALID; E2E from shipped file: ok:true).
-Backups: /Applications/DSH Desktop.app.orig920 (full pristine bundle) and
-/tmp/installer.mjs.v0.9.1-backup. Revert = swap .orig920 back in.
-
-Upstream PRs (2026-09-20):
+- dsh-market/dsh-market#652 — variant-aware unexpected-store message — MERGED
+  2026-09-21 after one review round (path check narrowed to
+  `.generations/staging`; copy cut to the two honest remediations).
+  `dshmarket-unexpected-store-staging-message.patch` is the merged version.
 - dataelement/dsh-desktop#487 — always-write staging workspace + storeMismatch
-  retry/detail (branch fix/generation-staging-workspace-isolation, fork elkaix)
-- dsh-market/dsh-market#652 — variant-aware unexpected-store message
-  (branch fix/staging-store-mismatch-advice, fork elkaix)
-Local app-bundle patch NOT applied (macOS TCC blocks /Applications writes;
-  sudo needs a password). Upgrade the app once the PR merges, or grant the
-  terminal App Management and apply tasks/dsh-desktop-generation-staging-store-fix.patch manually.
+  retry/detail (fork elkaix, branch fix/generation-staging-workspace-isolation)
+  — OPEN, mergeable, no review yet.
+- Local app-bundle patch: moot. `/Applications/DSH Desktop.app` and its
+  `.orig920` backup were both gone by 2026-09-28. After a reinstall, change 1
+  still covers the bug until #487 ships.
 
 ## Root cause (verified by reproduction)
 
