@@ -86,7 +86,7 @@ If your profile's `cordis.patch.yml` already inserts its own Tavily MCP row (id 
 | Ref                     | Meaning                                             |
 | ----------------------- | --------------------------------------------------- |
 | `TAVILY_API_KEY`        | Optional (search). Present = account quota; absent = keyless |
-| `TAVILY_SEARCH_ENABLED` | Present = on; unset = off                           |
+| `TAVILY_SEARCH_ENABLED` | `true` = on (the card writes `true`; `1` / `yes` / `on` also count); unset or any other value = off |
 
 The search key and toggle are stored on the credentials plane (`$DSH_HOME/.credentials.yaml`). The MCP bridge reads `TAVILY_API_KEY` from the launch environment instead, because MCP rows resolve before credentials are materialized. Do not commit real keys.
 
