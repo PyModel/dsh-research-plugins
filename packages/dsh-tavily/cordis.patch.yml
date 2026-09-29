@@ -1,8 +1,12 @@
 # Tavily web-search provider: the searchProvider switch keeps official
 # DeepSeek as the fallback inside our provider (one searchProvider write on rc.6).
+# An id-targeted override replaces the entry's whole `config`, so dsh-base's
+# fetchProvider is restated; without it a second fetch provider would make
+# web fetch fail as WEB_PROVIDER_AMBIGUOUS.
 - id: web
   config:
     searchProvider: tavily
+    fetchProvider: http
 
 - insert:
     - id: web-search-tavily

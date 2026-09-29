@@ -258,7 +258,9 @@ class TavilySearchProvider {
 
 export function apply(ctx, config) {
   // Dispatch namespace for Plugin configuration. Toggle/key stay on credentials.
-  ctx.settings.register("web-search-tavily", Config);
+  // DSH <= 0.1.5 registers it explicitly; 0.1.7+ has no register() and
+  // projects the exported Config into settings on its own.
+  ctx.settings.register?.("web-search-tavily", Config);
   const apiKeyEnv = config.apiKeyEnv || DEFAULT_KEY_ENV;
   const deepseek = new DeepSeekSearchProvider(() => {
     const keyEnv = credentialRef("DEEPSEEK_API_KEY");
@@ -286,7 +288,9 @@ export function apply(ctx, config) {
     deepseek,
   })));
 
-  ctx.webServer.register({
+  // Effect-scoped so a plugin reload drops the route before re-adding it;
+  // register() throws on a duplicate path.
+  ctx.effect(() => ctx.webServer.register({
     kind: "exact",
     path: "/api/tavily-probe",
     handler: async (req, res) => {
@@ -316,5 +320,5 @@ export function apply(ctx, config) {
         return sendJson(res, 200, { ok: false, ...classifyProbeError(error) });
       }
     },
-  });
+  }), "tavily probe route");
 }

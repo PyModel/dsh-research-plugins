@@ -6,7 +6,7 @@ window.__ModuleLoader__.load({
     Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
     let react = require("react");
     let react_jsx_runtime = require("react/jsx-runtime");
-    let _client_runtime = require("@deepseek-ai/dsh-client-runtime/client");
+    let _client_store = require("@deepseek-ai/dsh-client-store");
 
     const KEY_REF = "TAVILY_API_KEY";
     const ENABLED_REF = "TAVILY_SEARCH_ENABLED";
@@ -83,9 +83,15 @@ window.__ModuleLoader__.load({
       return () => tag.remove();
     }
 
+    // remote.credentials writes resolve { ok: false, error } instead of throwing.
+    async function written(call) {
+      const response = await call;
+      if (!response.ok) throw new Error(response.error.message);
+    }
+
     class TavilyCardController {
-      constructor(api) {
-        this.api = api;
+      constructor(credentials) {
+        this.credentials = credentials;
         this.enabled = false;
         this.savedEnabled = false;
         this.keyConfigured = false;
@@ -100,7 +106,7 @@ window.__ModuleLoader__.load({
         this.justSaved = false;
         this.probeStatus = "idle";
         this.probeFail = null;
-        this.store = _client_runtime.createSnapshotStore(this.projection());
+        this.store = _client_store.createSnapshotStore(this.projection());
         this.refresh();
       }
 
@@ -130,9 +136,9 @@ window.__ModuleLoader__.load({
 
       async describe(ref) {
         try {
-          const response = await this.api.credentials.describe({ refs: [ref] });
-          if (!response.result.ok) return { configured: false, writable: true };
-          return response.result.value.credentials[ref] ?? { configured: false, writable: true };
+          const response = await this.credentials.describe([ref]);
+          if (!response.ok) return { configured: false, writable: true };
+          return response.value[ref] ?? { configured: false, writable: true };
         } catch {
           return { configured: false, writable: true };
         }
@@ -253,13 +259,13 @@ window.__ModuleLoader__.load({
         this.publish();
         try {
           if (this.enabledWritable) {
-            if (this.draftEnabled) await this.api.credentials.set({ ref: ENABLED_REF, value: "true" });
-            else await this.api.credentials.unset({ ref: ENABLED_REF });
+            if (this.draftEnabled) await written(this.credentials.set(ENABLED_REF, "true"));
+            else await written(this.credentials.unset(ENABLED_REF));
           }
           const key = this.draftKey.trim();
           if (this.keyWritable) {
-            if (key) await this.api.credentials.set({ ref: KEY_REF, value: key });
-            else if (this.clearKey) await this.api.credentials.unset({ ref: KEY_REF });
+            if (key) await written(this.credentials.set(KEY_REF, key));
+            else if (this.clearKey) await written(this.credentials.unset(KEY_REF));
           }
           await this.refresh();
           this.justSaved = true;
@@ -500,10 +506,9 @@ window.__ModuleLoader__.load({
       return "";
     }
 
-    const inject = ["slots", "locale", "connection", "remote"];
+    const inject = ["slots", "locale", "remote", "remote.credentials"];
 
     function apply(ctx) {
-      const { api } = ctx.get("connection");
       const en = {
         title: "Tavily web search",
         description: "On: Tavily (works without a key). Off: official DeepSeek.",
@@ -543,13 +548,20 @@ window.__ModuleLoader__.load({
       ctx.effect(() => injectCss(), "tavily css");
       ctx.effect(() => ctx.locale.register("web-search-tavily", { en }), "tavily locale");
 
-      const card = new TavilyCardController(api);
-      const remote = ctx.get("remote");
-      if (remote) ctx.effect(() => remote.$on("credentials/updated", () => card.refresh()), "tavily creds");
+      const card = new TavilyCardController(ctx.remote.credentials);
+      ctx.effect(() => ctx.remote.$on("credentials/reference-updated", () => card.refresh()), "tavily creds");
 
+      // DSH <= 0.1.5 lists plugin cards in Settings; 0.1.7+ renders a bundle's
+      // config on its page in the Plugins panel. Each host ignores the other slot.
       ctx.slots.inject("settings.plugin.item", () => ctx.slots.register({
         name: "settings.plugin.item",
         key: "web-search-tavily",
+        locale: "web-search-tavily",
+        inject: () => card.inject(),
+      }, TavilyCard));
+      ctx.slots.inject("plugins.bundle.config", () => ctx.slots.register({
+        name: "plugins.bundle.config",
+        key: "@pymodel/dsh-tavily",
         locale: "web-search-tavily",
         inject: () => card.inject(),
       }, TavilyCard));

@@ -35,4 +35,4 @@ The model sees the Context7 tools under the `context7` namespace (for example `m
 dsh plugin --profile web remove dsh-mcp-context7
 ```
 
-Do not commit real keys. If you already run your own Context7 MCP row, remove it first to avoid a duplicate `serverName` conflict.
+Do not commit real keys. If your profile's `cordis.patch.yml` already inserts its own Context7 MCP row (id `mcp-context7` or `serverName` `context7`), DSH will not boot with both: delete that row, or turn it into an override of `mcp-context7` (see [Already have your own MCP row?](https://github.com/PyModel/dsh-research-plugins#already-have-your-own-mcp-row)).

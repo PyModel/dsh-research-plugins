@@ -1,6 +1,6 @@
 {
   "name": "dsh-mcp-context7",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "type": "module",
   "description": "Context7 MCP for DeepSeek Harness: up-to-date library documentation and code examples",
   "repository": {

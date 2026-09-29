@@ -19,7 +19,7 @@ Or follow GitHub (latest commit on the repo):
 dsh plugin --profile web add github:pymodel/dsh-research-plugins#path:packages/dsh-tavily
 ```
 
-Settings → Plugins → Plugin settings → **Tavily web search**: turn the toggle on. The key is optional; leave it blank for keyless search. **Test connection** at the bottom-left checks that search works now (including keyless).
+Settings → Plugins → **Tavily web search** (DSH 0.1.5 / DSH Desktop), or Plugins → **@pymodel/dsh-tavily** (DSH 0.1.7+): turn the toggle on. The key is optional; leave it blank for keyless search. **Test connection** at the bottom-left checks that search works now (including keyless).
 
 Pin a commit:
 
@@ -79,6 +79,8 @@ TAVILY_API_KEY=tvly-...
 
 The key goes into the `Authorization: Bearer` header at load time — never into the endpoint URL and never into YAML. A key added to `.env` needs a `dsh web` restart.
 
+If your profile's `cordis.patch.yml` already inserts its own Tavily MCP row (id `mcp-tavily` or `serverName` `tavily`), DSH will not boot with both: delete that row, or turn it into an override of `mcp-tavily` (see [Already have your own MCP row?](https://github.com/PyModel/dsh-research-plugins#already-have-your-own-mcp-row)).
+
 ## Credentials
 
 | Ref                     | Meaning                                             |
@@ -90,6 +92,7 @@ The search key and toggle are stored on the credentials plane (`$DSH_HOME/.crede
 
 ## Updates
 
+- **0.3.1** Works on DSH 0.1.5 (DSH Desktop) and 0.1.7: the search provider no longer fails to start on 0.1.7 (`settings.register` is gone there); the settings card loads its store from `@deepseek-ai/dsh-client-store` (the removed `dsh-client-runtime` left it blank and raised a DSH Desktop Safe Mode warning), writes through `remote.credentials` so Save works, refreshes on `credentials/reference-updated`, and also renders on 0.1.7's plugin page; peer ranges set to `>=0.1.5-rc.2 <0.3.0-0` so DSH 0.2's installer accepts it (tested on 0.1.5-rc.2, 0.1.7-rc.2 and 0.2.0-rc.1); the probe route is released on plugin reload; the `web` override keeps dsh-base's `fetchProvider: http`; README documents the duplicate `mcp-tavily` row conflict.
 - **0.3.0** Settings-card design refresh informed by current UI/a11y guidance (ARIA live regions for async status, `prefers-reduced-motion` support): header mode badge with status dot, spinner states on Test/Save, saved confirmation announcement, show/hide key toggle. Server provider adopts the latest Tavily Search API surface behind opt-in config: `searchDepth` including the new `fast` tier, and `auto_parameters`.
 - **0.2.0** MCP bridge: keyless mode via `X-Tavily-Access-Mode: keyless` (row always on); keyed auth moved from URL query parameter to `Authorization: Bearer` header. Search provider: caller cancellation preserved on runtimes without `AbortSignal.any`.
 - **0.1.0** First release as `@pymodel/dsh-tavily`. Web search provider with settings toggle (off = official DeepSeek, on = Tavily) plus a Tavily MCP bridge (extract / crawl / map). English-only localisation.

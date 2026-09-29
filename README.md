@@ -75,6 +75,24 @@ The MCP bridges use the harness's shipped `@deepseek-ai/dsh-mcp-client`. They re
 
 Keys are sent as an `Authorization: Bearer` header at load time — never in the URL and never in plain YAML. Without a key the bridges run in each vendor's documented keyless mode (`X-Tavily-Access-Mode: keyless` for Tavily), so every row works out of the box. A key added to `.env` needs a `dsh web` restart.
 
+
+### Already have your own MCP row?
+
+The bundles insert loader entries `mcp-tavily`, `mcp-firecrawl` and `mcp-context7`. If your profile's `cordis.patch.yml` also inserts one of those ids, DSH refuses to boot (`duplicate loader entry id: mcp-tavily`) and DSH Desktop opens Safe Mode. A second row under another id with the same `serverName` fails too (`serverName "tavily" is already in use`).
+
+Delete your own row, or keep your settings (a proxy or gateway URL, say) by turning it into an override of the plugin's row. An override replaces the whole `config`, so restate every key:
+
+```yaml
+# $DSH_HOME/profiles/web/cordis.patch.yml
+- id: mcp-tavily
+  config:
+    serverName: tavily
+    transport: streamable-http
+    url: http://127.0.0.1:8787/tavily/mcp
+    toolCallTimeoutMs: 60000
+    failOnStartupError: false
+```
+
 ---
 
 ## Repo layout

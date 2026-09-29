@@ -43,4 +43,4 @@ After connecting, the model sees the Firecrawl tools under the `firecrawl` names
 dsh plugin --profile web remove dsh-mcp-firecrawl
 ```
 
-Do not commit real keys. If you already run your own Firecrawl MCP row, remove it first to avoid a duplicate `serverName` conflict.
+Do not commit real keys. If your profile's `cordis.patch.yml` already inserts its own Firecrawl MCP row (id `mcp-firecrawl` or `serverName` `firecrawl`), DSH will not boot with both: delete that row, or turn it into an override of `mcp-firecrawl` (see [Already have your own MCP row?](https://github.com/PyModel/dsh-research-plugins#already-have-your-own-mcp-row)).
