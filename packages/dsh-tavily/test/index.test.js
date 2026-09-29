@@ -93,8 +93,9 @@ describe("search provider", () => {
   for (const [label, creds] of [["unset", {}], ['"false"', { [ENABLED_REF]: "false" }]]) {
     it(`falls back to official DeepSeek when the toggle is ${label}`, async () => {
       const [provider] = host({ creds }).providers;
-      // The DeepSeek fallback has no key here and may reject; only the routing matters.
-      await provider.search({ query: "q" }).catch(() => {});
+      // No DeepSeek key here, so reaching the fallback shows up as its own
+      // missing-credential rejection.
+      await assert.rejects(provider.search({ query: "q" }), { code: "WEB_PROVIDER_CREDENTIAL_MISSING" });
       assert.equal(tavilyCalls().length, 0);
     });
   }
