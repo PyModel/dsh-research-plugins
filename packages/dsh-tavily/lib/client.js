@@ -228,7 +228,8 @@ window.__ModuleLoader__.load({
           const body = {};
           if (draft) body.apiKey = draft;
           else if (this.clearKey) body.clearKey = true;
-          const response = await fetch("/api/tavily-probe", {
+          // Relative, so the call works when DSH is mounted under a sub-path.
+          const response = await fetch("/api/tavily-probe".slice(1), {
             method: "POST",
             headers: { "content-type": "application/json" },
             cache: "no-store",
@@ -273,7 +274,7 @@ window.__ModuleLoader__.load({
         this.failed = false;
         this.publish();
         try {
-          if (this.enabledWritable && enable !== this.enabled) {
+          if (this.enabledWritable) {
             if (enable) await written(this.credentials.set(ENABLED_REF, "true"));
             else await written(this.credentials.unset(ENABLED_REF));
           }

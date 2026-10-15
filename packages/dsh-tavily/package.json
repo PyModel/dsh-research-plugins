@@ -1,8 +1,12 @@
 {
   "name": "@pymodel/dsh-tavily",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "type": "module",
-  "description": "Tavily web search + Tavily MCP for DSH: settings toggle to official DeepSeek, keyless search, MCP extract/crawl/map",
+  "description": "Tavily web search for DSH (keyless or keyed, official DeepSeek when off) plus the Tavily MCP: search, extract, crawl, map, research",
+  "icon": "./icon.svg",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/PyModel/dsh-research-plugins.git",
@@ -20,12 +24,16 @@
     "./client": {
       "default": "./lib/client.js"
     },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./locale/*.json": "./locale/*.json",
     "./package.json": "./package.json"
   },
   "files": [
     "lib/index.js",
     "lib/client.js",
-    "cordis.patch.yml"
+    "cordis.patch.yml",
+    "icon.svg",
+    "locale/*.json"
   ],
   "license": "MIT",
   "author": {
@@ -39,7 +47,11 @@
     "tavily",
     "mcp"
   ],
+  "engines": {
+    "dsh": ">=0.1.5-rc.2 <0.3.0-0"
+  },
   "dsh": {
+    "manifestVersion": 1,
     "bundle": {
       "patch": "./cordis.patch.yml"
     },
@@ -59,10 +71,15 @@
     "@deepseek-ai/schemastery": "^3.18.1"
   },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "^4.0.1",
-    "@deepseek-ai/dsh-web": ">=0.1.5-rc.2 <0.3.0-0",
-    "@deepseek-ai/dsh-web-search-deepseek": ">=0.1.5-rc.2 <0.3.0-0",
+    "@deepseek-ai/cordis": ">=4.0.1 <5.0.0-0",
     "@deepseek-ai/dsh-credentials": ">=0.1.5-rc.2 <0.3.0-0",
-    "@deepseek-ai/dsh-launch-environment": ">=0.1.5-rc.2 <0.3.0-0"
+    "@deepseek-ai/dsh-launch-environment": ">=0.1.5-rc.2 <0.3.0-0",
+    "@deepseek-ai/dsh-web": ">=0.1.5-rc.2 <0.3.0-0"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "4.0.4",
+    "@deepseek-ai/dsh-credentials": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-launch-environment": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-web": "0.2.0-rc.2"
   }
 }

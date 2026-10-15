@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Tavily 网页搜索",
+    "description": "使用 Tavily 作为网页搜索提供方（可免密钥或使用 API 密钥），关闭时回退到官方 DeepSeek；另附 Tavily MCP：搜索、提取、爬取、站点地图和研究。"
+  }
+}

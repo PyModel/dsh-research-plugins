@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { Readable } from "node:stream";
 import { createLaunchEnvironmentSnapshot } from "@deepseek-ai/dsh-launch-environment";
 import { apply, ENABLED_REF } from "../lib/index.js";
 
@@ -9,26 +8,45 @@ const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
 
 // A host context shaped like DSH's. The launch environment is an explicit empty
 // snapshot so real TAVILY_API_KEY / DEEPSEEK_API_KEY in process.env never leak in.
-function host({ creds = {}, withRegister = false } = {}) {
-  const seen = { providers: [], routes: [], effects: [], settings: [], disposed: 0 };
+// `services` lists what the profile mounts: ctx.inject(deps, fn) runs fn only
+// when every dep is present, as Cordis does for optional children.
+function host({ creds = {}, services = ["settings", "connection"], settings = "0.2", deepseek = true } = {}) {
+  const seen = { providers: [], routes: [], effects: [], settings: [], disposed: 0, deepseekCalls: 0 };
   const launchEnvironment = createLaunchEnvironmentSnapshot([{ source: "process", values: {} }]);
+  const searchProviders = new Map();
+  if (deepseek) {
+    searchProviders.set("deepseek-official", {
+      id: "deepseek-official",
+      search: async () => { seen.deepseekCalls++; return { sources: [{ url: "https://deepseek.example" }], truncated: false }; },
+    });
+  }
   const ctx = {
+    fiber: "plugin-fiber",
     get: (name) => {
       if (name === "credentials") return { resolve: async (ref) => ({ value: creds[ref] }) };
       if (name === "launchEnvironment") return launchEnvironment;
       return undefined;
     },
-    web: { registerSearchProvider: (provider) => seen.providers.push(provider) },
-    webServer: {
-      register: (route) => {
-        seen.routes.push(route);
-        return () => seen.disposed++;
-      },
-    },
+    web: { searchProviders, registerSearchProvider: (provider) => seen.providers.push(provider) },
     effect: (fn, label) => seen.effects.push({ label, result: fn() }),
-    // DSH <= 0.1.5 has settings.register; 0.1.7+ does not.
-    settings: withRegister ? { register: (...args) => seen.settings.push(args) } : {},
+    inject: (deps, fn) => { if (deps.every((d) => services.includes(d))) fn(ctx); },
   };
+  if (services.includes("connection")) {
+    ctx.connection = {
+      fetch: {
+        register: (route) => {
+          seen.routes.push(route);
+          return () => seen.disposed++;
+        },
+      },
+    };
+  }
+  if (services.includes("settings")) {
+    // 0.1.5 has register(ns, schema); 0.1.7+ has configure(policy, fiber).
+    ctx.settings = settings === "0.1.5"
+      ? { register: (...args) => seen.settings.push(["register", ...args]) }
+      : { configure: (...args) => { seen.settings.push(["configure", ...args]); return () => {}; } };
+  }
   apply(ctx, {});
   return seen;
 }
@@ -52,22 +70,30 @@ afterEach(() => {
 const tavilyCalls = () => fetches.filter((f) => f.url.startsWith("https://api.tavily.com/"));
 
 describe("apply()", () => {
-  it("boots on DSH 0.1.7+, where settings.register does not exist", () => {
-    const seen = host();
+  it("loads in a headless profile with neither connection nor settings", () => {
+    const seen = host({ services: [] });
     assert.equal(seen.providers.length, 1);
     assert.equal(seen.providers[0].id, "tavily");
+    assert.equal(seen.routes.length, 0);
   });
 
   it("registers the Config namespace on DSH 0.1.5", () => {
-    const seen = host({ withRegister: true });
-    assert.equal(seen.settings[0][0], "web-search-tavily");
+    const seen = host({ settings: "0.1.5" });
+    assert.deepEqual(seen.settings[0].slice(0, 2), ["register", "web-search-tavily"]);
   });
 
-  it("registers the probe route inside ctx.effect so a reload releases it", () => {
+  it("tells DSH 0.1.7+ settings that the plugin ships its own page", () => {
     const seen = host();
-    assert.equal(seen.routes[0].path, "/api/tavily-probe");
+    assert.deepEqual(seen.settings[0], ["configure", { auto: false }, "plugin-fiber"]);
+  });
+
+  it("registers the probe on the authenticated /api channel, released on reload", () => {
+    const seen = host();
+    assert.deepEqual(
+      { path: seen.routes[0].path, methods: seen.routes[0].methods },
+      { path: "/api/tavily-probe", methods: ["POST"] },
+    );
     const effect = seen.effects.find((e) => e.label === "tavily probe route");
-    assert.equal(typeof effect.result, "function");
     effect.result();
     assert.equal(seen.disposed, 1);
   });
@@ -93,14 +119,33 @@ describe("search provider", () => {
   });
 
   for (const [label, creds] of [["unset", {}], ['"false"', { [ENABLED_REF]: "false" }]]) {
-    it(`falls back to official DeepSeek when the toggle is ${label}`, async () => {
-      const [provider] = host({ creds }).providers;
-      // No DeepSeek key here, so reaching the fallback shows up as its own
-      // missing-credential rejection.
-      await assert.rejects(provider.search({ query: "q" }), { code: "WEB_PROVIDER_CREDENTIAL_MISSING" });
+    it(`delegates to the registered official DeepSeek provider when the toggle is ${label}`, async () => {
+      const seen = host({ creds });
+      const { sources } = await seen.providers[0].search({ query: "q" });
+      assert.equal(seen.deepseekCalls, 1);
+      assert.deepEqual(sources.map((s) => s.url), ["https://deepseek.example"]);
       assert.equal(tavilyCalls().length, 0);
     });
   }
+
+  it("names the missing official provider instead of failing obscurely", async () => {
+    const [provider] = host({ deepseek: false }).providers;
+    await assert.rejects(provider.search({ query: "q" }), { code: "WEB_PROVIDER_CONFIGURED_MISSING" });
+  });
+
+  it("refuses a plain-http baseURL that is not loopback", async () => {
+    const seen = { providers: [] };
+    const ctx = {
+      get: (name) => (name === "credentials" ? { resolve: async (ref) => ({ value: { [ENABLED_REF]: "true" }[ref] }) } : undefined),
+      web: { searchProviders: new Map(), registerSearchProvider: (p) => seen.providers.push(p) },
+      inject: () => {},
+    };
+    apply(ctx, { baseURL: "http://evil.example" });
+    await assert.rejects(seen.providers[0].search({ query: "q" }), /must use https/);
+    apply(ctx, { baseURL: "http://127.0.0.1:8787/tavily" });
+    await seen.providers[1].search({ query: "q" });
+    assert.equal(fetches[0].url, "http://127.0.0.1:8787/tavily/search");
+  });
 });
 
 describe("Tavily request and response mapping", () => {
@@ -132,13 +177,8 @@ describe("Tavily request and response mapping", () => {
 
 async function probe(body = {}) {
   const [route] = host().routes;
-  const req = Object.assign(Readable.from([Buffer.from(JSON.stringify(body))]), { method: "POST" });
-  const res = {
-    writeHead(status) { this.status = status; },
-    end(text) { this.body = JSON.parse(text); },
-  };
-  await route.handler(req, res);
-  return res.body;
+  const response = await route.fetch(new Request("http://127.0.0.1/api/tavily-probe", { method: "POST", body: JSON.stringify(body) }));
+  return response.json();
 }
 
 describe("probe classification", () => {
@@ -162,15 +202,13 @@ describe("probe classification", () => {
 
 describe("probe route", () => {
   it("reports keyless mode when no key is saved", async () => {
+    assert.deepEqual(await probe(), { ok: true, mode: "keyless" });
+  });
+
+  it("rejects a body that is not JSON", async () => {
     const [route] = host().routes;
-    const req = Object.assign(Readable.from([Buffer.from("{}")]), { method: "POST" });
-    const res = {
-      writeHead(status) { this.status = status; },
-      end(body) { this.body = JSON.parse(body); },
-    };
-    await route.handler(req, res);
-    assert.equal(res.status, 200);
-    assert.deepEqual(res.body, { ok: true, mode: "keyless" });
+    const response = await route.fetch(new Request("http://127.0.0.1/api/tavily-probe", { method: "POST", body: "nope" }));
+    assert.equal(response.status, 400);
   });
 });
 

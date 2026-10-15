@@ -36,7 +36,7 @@ Everything is delivered as drop-in **DSH plugins** — no vendor lock-in, no for
 
 | Package | What it adds |
 |---|---|
-| [`@pymodel/dsh-tavily`](packages/dsh-tavily) | Tavily Search API as a web search provider (settings toggle, keyless search) + a Tavily MCP bridge (`tavily-search` / `tavily-extract` keyless; `crawl` / `map` with a key) |
+| [`@pymodel/dsh-tavily`](packages/dsh-tavily) | Tavily Search API as a web search provider (settings toggle, keyless search) + a Tavily MCP bridge (`tavily_search` / `tavily_extract` keyless; `tavily_crawl` / `tavily_map` / `tavily_research` with a key) |
 | [`dsh-mcp-firecrawl`](packages/dsh-mcp-firecrawl) | Firecrawl MCP: keyless `search` / `scrape` / `parse`; full tool surface with an API key |
 | [`dsh-mcp-context7`](packages/dsh-mcp-context7) | Context7 MCP: `mcp__context7__*` up-to-date library docs and code examples |
 
@@ -69,7 +69,7 @@ The MCP bridges use the harness's shipped `@deepseek-ai/dsh-mcp-client`. They re
 
 | Plugin | Env var | Required | Endpoint |
 |---|---|---|---|
-| `dsh-tavily` (MCP part) | `TAVILY_API_KEY` | no (keyless MCP: search + extract; crawl/map need a key) | `https://mcp.tavily.com/mcp/` |
+| `dsh-tavily` (MCP part) | `TAVILY_API_KEY` | no (keyless MCP: search + extract; crawl / map / research need a key) | `https://mcp.tavily.com/mcp/` |
 | `dsh-mcp-firecrawl` | `FIRECRAWL_API_KEY` | no (keyless: search/scrape/parse; full surface with a key) | `https://mcp.firecrawl.dev/v2/mcp` |
 | `dsh-mcp-context7` | `CONTEXT7_API_KEY` | no (keyless works) | `https://mcp.context7.com/mcp` |
 
@@ -89,7 +89,7 @@ Delete your own row, or keep your settings (a proxy or gateway URL, say) by turn
     serverName: tavily
     transport: streamable-http
     url: http://127.0.0.1:8787/tavily/mcp
-    toolCallTimeoutMs: 60000
+    toolCallTimeoutMs: 600000
     failOnStartupError: false
 ```
 
@@ -104,7 +104,18 @@ packages/
   dsh-mcp-context7/    # pure-config Context7 MCP bundle
 ```
 
-The Firecrawl and Context7 packages are pure-config bundles (`package.json` + `cordis.patch.yml`) with no build step. The Tavily package keeps its prebuilt `lib/` and browser client.
+The Firecrawl and Context7 packages are pure-config bundles (`package.json` + `cordis.patch.yml` + icon and `locale/` titles) with no build step. The Tavily package keeps its hand-written `lib/` and browser client; there is no build.
+
+All three declare `engines.dsh: ">=0.1.5-rc.2 <0.3.0-0"`: DSH 0.1.5 (DSH Desktop) through 0.2.x.
+
+## Development
+
+```sh
+pnpm install
+pnpm test        # provider, settings card, and every package's manifest + tarball
+```
+
+CI runs the suite against the locked DSH 0.2 packages and against 0.1.5-rc.2 (DSH Desktop). Releases publish from the `Publish to npm` workflow when a GitHub release is published, with npm provenance.
 
 ---
 

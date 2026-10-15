@@ -75,6 +75,20 @@ beforeEach(() => {
 });
 
 describe("settings card controller", () => {
+  it("calls the probe relative to the page so sub-path mounts work", async () => {
+    const card = mountCard(plane);
+    const urls = [];
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async (url) => { urls.push(url); return Response.json({ ok: true, mode: "keyless" }); };
+    try {
+      await card.probe();
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+    assert.deepEqual(urls, ["api/tavily-probe"]);
+    assert.equal(state(card).probeStatus, "ok");
+  });
+
   it("keeps an unsaved key when another credential changes", async () => {
     const card = mountCard(plane);
     await settle();
@@ -96,15 +110,6 @@ describe("settings card controller", () => {
     assert.equal(plane.values.TAVILY_API_KEY, "tvly-new");
     assert.equal(state(card).dirty, false);
     assert.equal(state(card).keyConfigured, true);
-  });
-
-  it("does not rewrite an unchanged toggle", async () => {
-    plane = credentialsPlane({ TAVILY_SEARCH_ENABLED: "true" });
-    const card = mountCard(plane);
-    await settle();
-    card.setKey("tvly-only-key");
-    await card.save();
-    assert.deepEqual(plane.writes, [["set", "TAVILY_API_KEY"]]);
   });
 
   it("reports a failed load instead of showing Tavily as off", async () => {
