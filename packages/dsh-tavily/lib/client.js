@@ -268,7 +268,8 @@ window.__ModuleLoader__.load({
         // Snapshot the drafts before the first await: the reference-updated
         // event from the first write triggers refresh() mid-save.
         const enable = this.draftEnabled;
-        const key = this.draftKey.trim();
+        const draftKey = this.draftKey;
+        const key = draftKey.trim();
         const clearKey = this.clearKey;
         this.saving = true;
         this.failed = false;
@@ -282,7 +283,9 @@ window.__ModuleLoader__.load({
             if (key) await written(this.credentials.set(KEY_REF, key));
             else if (clearKey) await written(this.credentials.unset(KEY_REF));
           }
-          this.clearDrafts();
+          // Edits made while the writes were pending are newer than what was saved.
+          const editedMeanwhile = this.draftEnabled !== enable || this.draftKey !== draftKey || this.clearKey !== clearKey;
+          if (!editedMeanwhile) this.clearDrafts();
           await this.refresh();
           this.justSaved = true;
         } catch {

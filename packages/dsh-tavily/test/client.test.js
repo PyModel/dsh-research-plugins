@@ -112,6 +112,21 @@ describe("settings card controller", () => {
     assert.equal(state(card).keyConfigured, true);
   });
 
+  it("keeps a key typed while a save is still pending", async () => {
+    const card = mountCard(plane);
+    await settle();
+    card.setEnabled(true);
+    const realSet = plane.set;
+    plane.set = async (ref, value) => {
+      card.setKey("tvly-typed-during-save");
+      return realSet(ref, value);
+    };
+    await card.save();
+    await settle();
+    assert.equal(state(card).draftKey, "tvly-typed-during-save");
+    assert.equal(state(card).dirty, true);
+  });
+
   it("reports a failed load instead of showing Tavily as off", async () => {
     plane = credentialsPlane({ TAVILY_SEARCH_ENABLED: "true" });
     plane.describeFails = true;
