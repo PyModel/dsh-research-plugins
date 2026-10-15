@@ -164,6 +164,27 @@ describe("Tavily request and response mapping", () => {
     assert.equal(tavilyCalls()[0].body.max_results, 20);
   });
 
+  it("omits chunks_per_source for ultra-fast, which rejects it", async () => {
+    const seen = { providers: [] };
+    const ctx = {
+      get: (name) => (name === "credentials" ? { resolve: async (ref) => ({ value: { [ENABLED_REF]: "true" }[ref] }) } : undefined),
+      web: { searchProviders: new Map(), registerSearchProvider: (p) => seen.providers.push(p) },
+      inject: () => {},
+    };
+    apply(ctx, { searchDepth: "ultra-fast" });
+    apply(ctx, { searchDepth: "bogus" });
+    await seen.providers[0].search({ query: "q" });
+    await seen.providers[1].search({ query: "q" });
+    assert.equal(fetches[0].body.search_depth, "ultra-fast");
+    assert.equal("chunks_per_source" in fetches[0].body, false);
+    assert.deepEqual([fetches[1].body.search_depth, fetches[1].body.chunks_per_source], ["basic", 3]);
+  });
+
+  it("joins 422 validation messages from Tavily's detail array", async () => {
+    reply = () => json(422, { detail: [{ msg: "max_results must be <= 20" }, { msg: "query required" }] });
+    await assert.rejects(enabled().search({ query: "q" }), /HTTP 422\): max_results must be <= 20; query required/);
+  });
+
   it("surfaces Tavily's { detail: { error } } message with the status", async () => {
     reply = () => json(432, { detail: { error: "This request exceeds your plan's set usage limit." } });
     await assert.rejects(enabled().search({ query: "q" }), (error) => {
@@ -197,6 +218,42 @@ describe("probe classification", () => {
   it("maps a fetch failure to network", async () => {
     reply = () => { throw new TypeError("fetch failed"); };
     assert.deepEqual(await probe(), { ok: false, code: "network" });
+  });
+
+  it("maps the search deadline to timeout", async () => {
+    globalThis.fetch = (_url, init) => new Promise((_resolve, reject) => {
+      init.signal.addEventListener("abort", () => reject(init.signal.reason), { once: true });
+    });
+    const seen = { routes: [] };
+    const ctx = {
+      get: () => undefined,
+      web: { searchProviders: new Map(), registerSearchProvider: () => {} },
+      effect: (fn) => fn(),
+      inject: (deps, fn) => { if (deps.includes("connection")) fn({ ...ctx, connection: { fetch: { register: (r) => seen.routes.push(r) } } }); },
+    };
+    apply(ctx, { searchTimeoutMs: 5 });
+    const response = await seen.routes[0].fetch(new Request("http://127.0.0.1/api/tavily-probe", { method: "POST", body: "{}" }));
+    assert.deepEqual(await response.json(), { ok: false, code: "timeout" });
+  });
+});
+
+describe("probe key selection", () => {
+  const routeWithSavedKey = () => host({ creds: { TAVILY_API_KEY: "tvly-saved" } }).routes[0];
+  const call = (route, body) => route.fetch(new Request("http://127.0.0.1/api/tavily-probe", { method: "POST", body: JSON.stringify(body) })).then((r) => r.json());
+
+  it("tests the saved key when no draft is sent", async () => {
+    assert.deepEqual(await call(routeWithSavedKey(), {}), { ok: true, mode: "key" });
+    assert.equal(tavilyCalls()[0].headers.authorization, "Bearer tvly-saved");
+  });
+
+  it("tests a draft key in place of the saved one", async () => {
+    await call(routeWithSavedKey(), { apiKey: " tvly-draft " });
+    assert.equal(tavilyCalls()[0].headers.authorization, "Bearer tvly-draft");
+  });
+
+  it("tests keyless when the card has staged clearing the key", async () => {
+    assert.deepEqual(await call(routeWithSavedKey(), { clearKey: true }), { ok: true, mode: "keyless" });
+    assert.equal(tavilyCalls()[0].headers["x-tavily-access-mode"], "keyless");
   });
 });
 
