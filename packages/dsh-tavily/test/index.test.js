@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { createLaunchEnvironmentSnapshot } from "@deepseek-ai/dsh-launch-environment";
-import { apply, ENABLED_REF } from "../lib/index.js";
+import { apply, ENABLED_REF, inject } from "../lib/index.js";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
 
@@ -71,6 +71,7 @@ const tavilyCalls = () => fetches.filter((f) => f.url.startsWith("https://api.ta
 
 describe("apply()", () => {
   it("loads in a headless profile with neither connection nor settings", () => {
+    assert.deepEqual(inject, ["web"]);
     const seen = host({ services: [] });
     assert.equal(seen.providers.length, 1);
     assert.equal(seen.providers[0].id, "tavily");
