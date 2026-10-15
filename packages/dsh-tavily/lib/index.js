@@ -85,8 +85,8 @@ async function resolveRef(ctx, envName, literal) {
   return undefined;
 }
 
-/** Tavily search_depth tiers as of the current API: basic | advanced | fast. */
-const SEARCH_DEPTHS = ["basic", "advanced", "fast"];
+/** Tavily search_depth tiers: advanced costs 2 credits, the rest 1. */
+const SEARCH_DEPTHS = ["basic", "advanced", "fast", "ultra-fast"];
 
 function normalizedSearchDepth(depth) {
   return SEARCH_DEPTHS.includes(depth) ? depth : "basic";
@@ -102,18 +102,42 @@ function tavilyHeaders(apiKey) {
   return headers;
 }
 
-async function tavilyErrorText(res) {
-  let message = `Tavily API error (HTTP ${res.status})`;
-  try {
-    const json = await res.json();
-    const detail = typeof json?.error === "string"
-      ? json.error
-      : json?.error?.message || json?.message || json?.detail;
-    if (typeof detail === "string" && detail.length > 0) message = detail;
-  } catch {
-    // keep status-line fallback
+/** A non-2xx Tavily response; `status` drives probe classification. */
+class TavilyHttpError extends WebError {
+  constructor(message, status) {
+    super(message, "WEB_PROVIDER_ERROR");
+    this.status = status;
   }
-  return message;
+}
+
+/**
+ * Tavily errors are `{ detail: { error } }`; 422 validation errors are
+ * `{ detail: [{ msg }] }`. Anything else keeps the status-line fallback.
+ */
+function tavilyErrorDetail(json) {
+  const detail = json?.detail;
+  if (typeof detail === "string") return detail;
+  if (typeof detail?.error === "string") return detail.error;
+  if (Array.isArray(detail)) return detail.map((d) => d?.msg).filter((m) => typeof m === "string").join("; ");
+  return "";
+}
+
+async function tavilyHttpError(res) {
+  let detail = "";
+  try {
+    detail = tavilyErrorDetail(await res.json());
+  } catch {
+    // non-JSON body: status line only
+  }
+  const message = `Tavily API error (HTTP ${res.status})${detail ? `: ${detail.slice(0, 300)}` : ""}`;
+  return new TavilyHttpError(message, res.status);
+}
+
+/** Tavily dates are RFC 822 ("Tue, 11 Mar 2025 17:00:00 GMT"); the web seam wants ISO 8601. */
+function isoDate(value) {
+  if (typeof value !== "string" || !value) return undefined;
+  const ms = Date.parse(value);
+  return Number.isNaN(ms) ? undefined : new Date(ms).toISOString();
 }
 
 function toSources(body) {
@@ -124,7 +148,8 @@ function toSources(body) {
     const item = { url: row.url };
     if (typeof row.title === "string" && row.title) item.title = row.title;
     if (typeof row.content === "string" && row.content) item.snippet = row.content.slice(0, 800);
-    if (typeof row.published_date === "string" && row.published_date) item.publishedAt = row.published_date;
+    const publishedAt = isoDate(row.published_date);
+    if (publishedAt) item.publishedAt = publishedAt;
     sources.push(item);
   }
   return { sources, truncated: false };
@@ -168,20 +193,41 @@ function readJsonBody(req, limit = 4096) {
   });
 }
 
+/** HTTP statuses Tavily uses for rate limits (429) and plan / pay-as-you-go caps (432 / 433). */
+const LIMIT_STATUSES = new Set([429, 432, 433]);
+
+/** Maps a searchTavily failure onto the settings card's probe codes from its structure, not its wording. */
 function classifyProbeError(error) {
-  const msg = error instanceof Error ? error.message : String(error);
-  if (/timed out|TimeoutError/i.test(msg)) return { code: "timeout" };
-  if (/aborted/i.test(msg)) return { code: "timeout" };
-  const http = msg.match(/HTTP (\d{3})/);
-  if (http) {
-    const status = Number(http[1]);
-    if (status === 401 || status === 403) return { code: "invalid_key" };
-    return { code: "http", status };
+  if (error instanceof TavilyHttpError) {
+    if (error.status === 401 || error.status === 403) return { code: "invalid_key" };
+    if (LIMIT_STATUSES.has(error.status)) return { code: "limit", status: error.status };
+    return { code: "http", status: error.status };
   }
-  if (/unauthorized|invalid api key|forbidden|invalid key/i.test(msg)) return { code: "invalid_key" };
-  if (/Tavily request failed|fetch failed|ECONN|ENOTFOUND|network/i.test(msg)) return { code: "network" };
-  const trimmed = msg.replace(/^Tavily (API error|returned an unprocessable response):?\s*/i, "").slice(0, 60);
-  return { code: "other", error: trimmed || "unknown" };
+  const cause = error?.cause;
+  if (error?.code === "WEB_ABORTED" || cause?.name === "TimeoutError" || cause?.name === "AbortError") return { code: "timeout" };
+  if (cause instanceof TypeError) return { code: "network" };
+  const msg = error instanceof Error ? error.message : String(error);
+  return { code: "other", error: msg.slice(0, 80) || "unknown" };
+}
+
+/** Tavily accepts max_results 0..20; the seam truncates to the caller's bound regardless. */
+const MAX_RESULTS_CAP = 20;
+
+function searchBody(query, opts) {
+  const depth = normalizedSearchDepth(opts.searchDepth);
+  return {
+    query,
+    max_results: Math.min(Math.max(1, Math.floor(opts.maxResults) || 1), MAX_RESULTS_CAP),
+    search_depth: depth,
+    // ultra-fast returns one summary per URL and rejects chunks_per_source.
+    ...(depth === "ultra-fast" ? {} : { chunks_per_source: 3 }),
+    auto_parameters: opts.autoParameters === true,
+    include_answer: false,
+    include_raw_content: false,
+    include_images: false,
+    // Without it `published_date` is null outside topic=news.
+    include_published_date: true,
+  };
 }
 
 async function searchTavily(query, opts, signal) {
@@ -194,16 +240,7 @@ async function searchTavily(query, opts, signal) {
       method: "POST",
       redirect: "error",
       headers: tavilyHeaders(opts.apiKey),
-      body: JSON.stringify({
-        query,
-        max_results: opts.maxResults,
-        search_depth: normalizedSearchDepth(opts.searchDepth),
-        chunks_per_source: 3,
-        auto_parameters: opts.autoParameters === true,
-        include_answer: false,
-        include_raw_content: false,
-        include_images: false,
-      }),
+      body: JSON.stringify(searchBody(query, opts)),
       ...(requestSignal ? { signal: requestSignal } : {}),
     });
   } catch (error) {
@@ -215,7 +252,7 @@ async function searchTavily(query, opts, signal) {
   }
   if (!res.ok) {
     if (signal?.aborted) throwIfAborted(signal);
-    throw new WebError(await tavilyErrorText(res), "WEB_PROVIDER_ERROR");
+    throw await tavilyHttpError(res);
   }
   try {
     return toSources(await res.json());

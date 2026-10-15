@@ -34,13 +34,15 @@ function host({ creds = {}, withRegister = false } = {}) {
 }
 
 let fetches;
+let reply;
 const realFetch = globalThis.fetch;
+const json = (status, body) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 beforeEach(() => {
   fetches = [];
+  reply = () => json(200, { results: [{ url: "https://example.com", title: "Example", content: "text" }, { title: "no url" }] });
   globalThis.fetch = async (url, init) => {
-    fetches.push({ url: String(url), headers: init?.headers ?? {} });
-    const body = { results: [{ url: "https://example.com", title: "Example", content: "text" }, { title: "no url" }] };
-    return new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } });
+    fetches.push({ url: String(url), headers: init?.headers ?? {}, body: init?.body ? JSON.parse(init.body) : undefined });
+    return reply();
   };
 });
 afterEach(() => {
@@ -99,6 +101,63 @@ describe("search provider", () => {
       assert.equal(tavilyCalls().length, 0);
     });
   }
+});
+
+describe("Tavily request and response mapping", () => {
+  const enabled = () => host({ creds: { [ENABLED_REF]: "true" } }).providers[0];
+
+  it("converts RFC 822 published dates to the ISO 8601 the web seam expects", async () => {
+    reply = () => json(200, { results: [{ url: "https://a.example", published_date: "Tue, 11 Mar 2025 17:00:00 GMT" }, { url: "https://b.example", published_date: "not a date" }] });
+    const { sources } = await enabled().search({ query: "q" });
+    assert.equal(sources[0].publishedAt, "2025-03-11T17:00:00.000Z");
+    assert.equal(sources[1].publishedAt, undefined);
+    assert.equal(tavilyCalls()[0].body.include_published_date, true);
+  });
+
+  it("clamps the caller's maxResults to Tavily's 1..20", async () => {
+    await enabled().search({ query: "q", maxResults: 50 });
+    assert.equal(tavilyCalls()[0].body.max_results, 20);
+  });
+
+  it("surfaces Tavily's { detail: { error } } message with the status", async () => {
+    reply = () => json(432, { detail: { error: "This request exceeds your plan's set usage limit." } });
+    await assert.rejects(enabled().search({ query: "q" }), (error) => {
+      assert.equal(error.code, "WEB_PROVIDER_ERROR");
+      assert.equal(error.status, 432);
+      assert.match(error.message, /HTTP 432.*usage limit/);
+      return true;
+    });
+  });
+});
+
+async function probe(body = {}) {
+  const [route] = host().routes;
+  const req = Object.assign(Readable.from([Buffer.from(JSON.stringify(body))]), { method: "POST" });
+  const res = {
+    writeHead(status) { this.status = status; },
+    end(text) { this.body = JSON.parse(text); },
+  };
+  await route.handler(req, res);
+  return res.body;
+}
+
+describe("probe classification", () => {
+  it("maps 401 to invalid_key", async () => {
+    reply = () => json(401, { detail: { error: "Unauthorized: missing or invalid API key." } });
+    assert.deepEqual(await probe({ apiKey: "tvly-bad" }), { ok: false, code: "invalid_key" });
+  });
+
+  for (const status of [429, 432, 433]) {
+    it(`maps ${status} to limit`, async () => {
+      reply = () => json(status, { detail: { error: "limit" } });
+      assert.deepEqual(await probe(), { ok: false, code: "limit", status });
+    });
+  }
+
+  it("maps a fetch failure to network", async () => {
+    reply = () => { throw new TypeError("fetch failed"); };
+    assert.deepEqual(await probe(), { ok: false, code: "network" });
+  });
 });
 
 describe("probe route", () => {

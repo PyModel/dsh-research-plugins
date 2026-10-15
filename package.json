@@ -6,7 +6,7 @@
   "description": "DeepSeek Harness research plugins: Tavily web search + Firecrawl, Context7, and Tavily MCP bridges",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pymodel/dsh-research-plugins.git"
+    "url": "git+https://github.com/PyModel/dsh-research-plugins.git"
   },
   "license": "MIT",
   "author": {

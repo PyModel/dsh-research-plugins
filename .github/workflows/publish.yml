@@ -9,14 +9,17 @@ permissions:
   id-token: write
   contents: read
 
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      # Version comes from package.json "packageManager".
       - uses: pnpm/action-setup@v4
-        with:
-          version: "10.12.4"
       - uses: actions/setup-node@v6
         with:
           node-version: "24"
@@ -26,4 +29,8 @@ jobs:
       - run: pnpm test
       - run: pnpm -r publish --access public --no-git-checks
         env:
+          # Provenance attests the tarball to this workflow run (needs id-token: write).
+          # Once each package has this workflow registered as an npm trusted publisher,
+          # npm authenticates via OIDC and NPM_TOKEN can be deleted.
+          NPM_CONFIG_PROVENANCE: "true"
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

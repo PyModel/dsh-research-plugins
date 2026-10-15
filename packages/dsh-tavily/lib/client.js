@@ -57,6 +57,7 @@ window.__ModuleLoader__.load({
         ".tvly_probeFail{color:var(--dsw-alias-label-error)}",
         ".tvly_actions{display:flex;align-items:center;gap:8px;flex:none;margin-left:auto}",
         ".tvly_failed{margin:0;font-size:12px;line-height:1.5;color:var(--dsw-alias-label-error);white-space:nowrap}",
+        ".tvly_loadFailed{padding-top:12px;white-space:normal}",
         ".tvly_discard,.tvly_save,.tvly_probeBtn{appearance:none;border:1px solid transparent;border-radius:8px;padding:5px 14px;font:inherit;font-size:13px;line-height:1.5;cursor:pointer;transition:transform .12s,opacity .16s,border-color .16s,color .16s,background .16s}",
         ".tvly_discard,.tvly_probeBtn{border-color:var(--dsw-alias-border-l2);background:none;color:var(--dsw-alias-label-secondary)}",
         ".tvly_discard:hover:not(:disabled),.tvly_probeBtn:hover:not(:disabled){color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-label-dimmed)}",
@@ -106,12 +107,13 @@ window.__ModuleLoader__.load({
         this.justSaved = false;
         this.probeStatus = "idle";
         this.probeFail = null;
+        this.loadFailed = false;
         this.store = _client_store.createSnapshotStore(this.projection());
         this.refresh();
       }
 
       projection() {
-        const dirty = this.draftEnabled !== this.enabled || this.draftKey.trim() !== "" || this.clearKey;
+        const dirty = this.isDirty();
         return {
           enabled: this.draftEnabled,
           savedEnabled: this.savedEnabled,
@@ -127,6 +129,7 @@ window.__ModuleLoader__.load({
           probing: this.probing,
           probeStatus: this.probeStatus,
           probeFail: this.probeFail,
+          loadFailed: this.loadFailed,
         };
       }
 
@@ -134,32 +137,41 @@ window.__ModuleLoader__.load({
         this.store.set(this.projection());
       }
 
-      async describe(ref) {
-        try {
-          const response = await this.credentials.describe([ref]);
-          if (!response.ok) return { configured: false, writable: true };
-          return response.value[ref] ?? { configured: false, writable: true };
-        } catch {
-          return { configured: false, writable: true };
-        }
-      }
-
+      // Reloads saved state only. Unsaved drafts survive, so a credential
+      // change elsewhere (another tab, another plugin) never wipes typing.
       async refresh() {
-        const enabled = await this.describe(ENABLED_REF);
-        const key = await this.describe(KEY_REF);
+        let refs;
+        try {
+          const response = await this.credentials.describe([ENABLED_REF, KEY_REF]);
+          if (!response.ok) throw new Error(response.error.message);
+          refs = response.value;
+        } catch {
+          this.loadFailed = true;
+          this.publish();
+          return;
+        }
+        const enabled = refs[ENABLED_REF] ?? {};
+        const key = refs[KEY_REF] ?? {};
+        const wasDirty = this.isDirty();
         // describe() is value-free: presence of TAVILY_SEARCH_ENABLED means on.
         this.enabled = !!enabled.configured;
         this.savedEnabled = this.enabled;
         this.enabledWritable = enabled.writable ?? true;
         this.keyConfigured = !!key.configured;
         this.keyWritable = key.writable ?? true;
+        this.loadFailed = false;
+        if (!wasDirty) this.draftEnabled = this.enabled;
+        this.publish();
+      }
+
+      isDirty() {
+        return this.draftEnabled !== this.enabled || this.draftKey.trim() !== "" || this.clearKey;
+      }
+
+      clearDrafts() {
         this.draftEnabled = this.enabled;
         this.draftKey = "";
         this.clearKey = false;
-        this.failed = false;
-        this.probeStatus = "idle";
-        this.probeFail = null;
-        this.publish();
       }
 
       resetProbe() {
@@ -195,9 +207,7 @@ window.__ModuleLoader__.load({
             this.publish();
           },
           discard: () => {
-            this.draftEnabled = this.enabled;
-            this.draftKey = "";
-            this.clearKey = false;
+            this.clearDrafts();
             this.failed = false;
             this.resetProbe();
             this.publish();
@@ -254,19 +264,24 @@ window.__ModuleLoader__.load({
 
       async save() {
         if (this.saving) return;
+        // Snapshot the drafts before the first await: the reference-updated
+        // event from the first write triggers refresh() mid-save.
+        const enable = this.draftEnabled;
+        const key = this.draftKey.trim();
+        const clearKey = this.clearKey;
         this.saving = true;
         this.failed = false;
         this.publish();
         try {
-          if (this.enabledWritable) {
-            if (this.draftEnabled) await written(this.credentials.set(ENABLED_REF, "true"));
+          if (this.enabledWritable && enable !== this.enabled) {
+            if (enable) await written(this.credentials.set(ENABLED_REF, "true"));
             else await written(this.credentials.unset(ENABLED_REF));
           }
-          const key = this.draftKey.trim();
           if (this.keyWritable) {
             if (key) await written(this.credentials.set(KEY_REF, key));
-            else if (this.clearKey) await written(this.credentials.unset(KEY_REF));
+            else if (clearKey) await written(this.credentials.unset(KEY_REF));
           }
+          this.clearDrafts();
           await this.refresh();
           this.justSaved = true;
         } catch {
@@ -287,6 +302,7 @@ window.__ModuleLoader__.load({
       if (code === "invalid_key") return prefix + (t ? t("probeInvalidKey") : "invalid key");
       if (code === "network") return prefix + (t ? t("probeNetwork") : "network error");
       if (code === "unavailable") return prefix + (t ? t("probeUnavailable") : "test endpoint unavailable");
+      if (code === "limit") return prefix + (t ? t("probeLimit") : "rate or plan limit reached") + " (HTTP " + (fail.status || "") + ")";
       if (code === "http") return prefix + "HTTP " + (fail.status || "");
       const extra = fail && fail.error ? fail.error : "";
       return prefix + (extra || (t ? t("probeUnknown") : "unknown error"));
@@ -297,6 +313,7 @@ window.__ModuleLoader__.load({
       const state = props.useTavilyCard((s) => s);
       const [open, setOpen] = react.useState(false);
       const [showKey, setShowKey] = react.useState(false);
+      const id = react.useId();
       const blocked = !state.dirty || state.saving;
       const title = t ? t("title") : "Tavily web search";
       const description = t ? t("description") : "On: Tavily (works without a key). Off: official DeepSeek.";
@@ -349,13 +366,14 @@ window.__ModuleLoader__.load({
           open ? react_jsx_runtime.jsxs("div", {
             className: "tvly_body",
             children: [
+              state.loadFailed ? react_jsx_runtime.jsx("p", { className: "tvly_failed tvly_loadFailed", role: "alert", children: t ? t("loadFailed") : "Could not read saved settings. Reopen Settings to retry." }) : null,
               react_jsx_runtime.jsxs("div", {
                 className: "tvly_field",
                 children: [
                   react_jsx_runtime.jsxs("div", {
                     className: "tvly_fieldHead",
                     children: [
-                      react_jsx_runtime.jsx("span", { className: "tvly_label", children: t ? t("enable") : "Use Tavily (off = official DeepSeek)" }),
+                      react_jsx_runtime.jsx("span", { className: "tvly_label", id: id + "-enable", children: t ? t("enable") : "Use Tavily (off = official DeepSeek)" }),
                       react_jsx_runtime.jsxs("label", {
                         className: "tvly_switch",
                         children: [
@@ -363,7 +381,7 @@ window.__ModuleLoader__.load({
                             className: "tvly_switchInput",
                             type: "checkbox",
                             role: "switch",
-                            "aria-checked": state.enabled,
+                            "aria-labelledby": id + "-enable",
                             checked: state.enabled,
                             disabled: !state.enabledWritable,
                             onChange: (e) => props.setEnabled(e.target.checked),
@@ -381,7 +399,7 @@ window.__ModuleLoader__.load({
                   react_jsx_runtime.jsxs("div", {
                     className: "tvly_fieldHead",
                     children: [
-                      react_jsx_runtime.jsx("span", { className: "tvly_label", children: "API Key" }),
+                      react_jsx_runtime.jsx("label", { className: "tvly_label", htmlFor: id + "-key", children: t ? t("keyLabel") : "API key" }),
                       react_jsx_runtime.jsx("span", {
                         className: "tvly_badge",
                         children: state.clearKey
@@ -411,6 +429,8 @@ window.__ModuleLoader__.load({
                     ],
                   }),
                   react_jsx_runtime.jsx("input", {
+                    id: id + "-key",
+                    "aria-describedby": id + "-keyHint",
                     className: "tvly_input",
                     type: showKey ? "text" : "password",
                     autoComplete: "off",
@@ -425,6 +445,7 @@ window.__ModuleLoader__.load({
                     onChange: (e) => props.setKey(e.target.value),
                   }),
                   react_jsx_runtime.jsx("p", {
+                    id: id + "-keyHint",
                     className: "tvly_hint",
                     children: state.clearKey
                       ? (t ? t("keyHintClear") : "Save to delete the key and return to keyless.")
@@ -537,6 +558,9 @@ window.__ModuleLoader__.load({
         probeNetwork: "network error",
         probeUnavailable: "test endpoint unavailable",
         probeUnknown: "unknown error",
+        probeLimit: "rate or plan limit reached",
+        keyLabel: "API key",
+        loadFailed: "Could not read saved settings. Reopen Settings to retry.",
         probeHint: "Runs one real Tavily search. Uses 1 credit when a key is configured.",
         modeDeepseek: "Official DeepSeek",
         modeKeyless: "Tavily · keyless",

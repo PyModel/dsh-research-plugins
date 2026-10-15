@@ -5,13 +5,13 @@
   "description": "Tavily web search + Tavily MCP for DSH: settings toggle to official DeepSeek, keyless search, MCP extract/crawl/map",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pymodel/dsh-research-plugins.git",
+    "url": "git+https://github.com/PyModel/dsh-research-plugins.git",
     "directory": "packages/dsh-tavily"
   },
   "bugs": {
-    "url": "https://github.com/pymodel/dsh-research-plugins/issues"
+    "url": "https://github.com/PyModel/dsh-research-plugins/issues"
   },
-  "homepage": "https://github.com/pymodel/dsh-research-plugins/tree/main/packages/dsh-tavily#readme",
+  "homepage": "https://github.com/PyModel/dsh-research-plugins/tree/main/packages/dsh-tavily#readme",
   "main": "lib/index.js",
   "exports": {
     ".": {

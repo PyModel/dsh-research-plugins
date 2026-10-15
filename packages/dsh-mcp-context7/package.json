@@ -5,13 +5,13 @@
   "description": "Context7 MCP for DeepSeek Harness: up-to-date library documentation and code examples",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pymodel/dsh-research-plugins.git",
+    "url": "git+https://github.com/PyModel/dsh-research-plugins.git",
     "directory": "packages/dsh-mcp-context7"
   },
   "bugs": {
-    "url": "https://github.com/pymodel/dsh-research-plugins/issues"
+    "url": "https://github.com/PyModel/dsh-research-plugins/issues"
   },
-  "homepage": "https://github.com/pymodel/dsh-research-plugins/tree/main/packages/dsh-mcp-context7#readme",
+  "homepage": "https://github.com/PyModel/dsh-research-plugins/tree/main/packages/dsh-mcp-context7#readme",
   "license": "MIT",
   "author": {
     "name": "elkaix",
