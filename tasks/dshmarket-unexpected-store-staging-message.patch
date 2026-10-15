@@ -1,8 +1,8 @@
 diff --git a/src/pnpm-compat.ts b/src/pnpm-compat.ts
-index 67facaa..12817d2 100644
+index 67facaa..2b2985d 100644
 --- a/src/pnpm-compat.ts
 +++ b/src/pnpm-compat.ts
-@@ -211,9 +211,25 @@ export function classifyPnpmFailure(output: string, exitCode?: number | null): P
+@@ -211,9 +211,30 @@ export function classifyPnpmFailure(output: string, exitCode?: number | null): P
    if (output.includes('ERR_PNPM_UNEXPECTED_STORE')) {
      const linked = /currently linked from the store at "([^"]+)"/.exec(output)?.[1]
      const wanted = /wants to use the store at "([^"]+)"/.exec(output)?.[1]
@@ -17,22 +17,27 @@ index 67facaa..12817d2 100644
 +    // pnpm-workspace.yaml ABOVE the staging tree (a home folder used as a
 +    // pnpm workspace is the usual one) claims the install together with
 +    // ITS store. The profile's own node_modules is not the one that
-+    // mismatched, so the profile-relink advice below would be wrong here.
-+    if (modulesDir !== undefined && /[/\\]\.generations[/\\]/.test(modulesDir)) {
++    // mismatched, so the ordinary profile-relink advice is wrong here.
++    // Match only .generations/staging — a .generations/live path is not
++    // the disposable staging workspace.
++    if (modulesDir !== undefined && /[/\\]\.generations[/\\]staging[/\\]/.test(modulesDir)) {
++      const stores = linked !== undefined && wanted !== undefined
++        ? `\n  node_modules → ${linked}\n  pnpm now wants → ${wanted}`
++        : ''
 +      return {
 +        code: 'unexpected-store',
 +        recoverable: false,
-+        message: `桌面端的插件安装暂存目录被上层的一个 pnpm workspace（通常是 ~/pnpm-workspace.yaml，它的 node_modules 链接到另一个 pnpm store）接管，pnpm 因此拒绝在暂存目录里安装。这不是 profile 的 node_modules 的问题，不要按下面的方法去 relink profile。处理办法（任选其一）：给 profile 的 pnpm-workspace.yaml 加一条 allowBuilds 键，让桌面端暂存目录始终自带 workspace 文件；或用那个上层 workspace 自己的 pnpm 大版本重新链接它的 node_modules；或升级 DSH Desktop（新版已隔离暂存目录）。暂存目录 → ${modulesDir}${detail} / the desktop client's install staging directory was claimed by a pnpm workspace above it (usually ~/pnpm-workspace.yaml, whose node_modules links a different pnpm store), so pnpm refuses to install there. This is not the profile's node_modules — do not relink the profile as the general advice below suggests. Fix (any one): add an allowBuilds key to the profile's pnpm-workspace.yaml so desktop staging always carries its own workspace file; or relink that outer workspace's node_modules with its own pnpm major; or update DSH Desktop (newer versions isolate staging). Staging directory → ${modulesDir}${detail}`,
++        message: `the desktop client's install staging directory (.generations/staging) was claimed by a pnpm workspace above it (usually ~/pnpm-workspace.yaml, whose node_modules links a different pnpm store), so pnpm refuses to install there. This is not the profile's node_modules. Fix (any one): relink that outer workspace's node_modules with its own pnpm major; or remove that ancestor pnpm-workspace.yaml if you do not need it. Staging directory → ${modulesDir}${stores}`,
 +      }
 +    }
      return {
        code: 'unexpected-store',
        recoverable: false,
 diff --git a/tests/pnpm-compat.spec.ts b/tests/pnpm-compat.spec.ts
-index c783650..cd63e84 100644
+index c783650..e831095 100644
 --- a/tests/pnpm-compat.spec.ts
 +++ b/tests/pnpm-compat.spec.ts
-@@ -453,6 +453,21 @@ pnpm now wants to use the store at "C:\\Users\\lenovo\\AppData\\Local\\pnpm\\sto
+@@ -453,6 +453,36 @@ pnpm now wants to use the store at "C:\\Users\\lenovo\\AppData\\Local\\pnpm\\sto
      expect(failure?.code).toBe('unexpected-store')
      expect(failure?.message).toContain('--store-dir')
    })
@@ -41,15 +46,30 @@ index c783650..cd63e84 100644
 +The dependencies at "/Users/panda/Library/Application Support/dsh-desktop/harness/profiles/.generations/staging/1b4f/node_modules" are currently linked from the store at "/Users/panda/Library/pnpm/store/v11".
 +pnpm now wants to use the store at "/Users/panda/Library/pnpm/store/v10" to link dependencies.`
 +
-+  it('names the staging directory and its outer workspace when the mismatch is inside .generations staging', () => {
++  it('names the staging directory and both stores when the mismatch is inside .generations/staging', () => {
 +    // DSH Desktop installs in a disposable staging workspace; when an
 +    // ancestor pnpm-workspace.yaml claims it, the profile-relink advice is
 +    // wrong — the profile's node_modules is not the one that mismatched.
 +    const failure = classifyPnpmFailure(STAGING_OUTPUT)
 +    expect(failure?.code).toBe('unexpected-store')
 +    expect(failure?.message).toContain('.generations/staging/1b4f')
-+    expect(failure?.message).toContain('do not relink the profile')
++    expect(failure?.message).toContain('/Users/panda/Library/pnpm/store/v11')
++    expect(failure?.message).toContain('/Users/panda/Library/pnpm/store/v10')
++    expect(failure?.message).toContain("This is not the profile's node_modules")
++    expect(failure?.message).toContain('relink that outer workspace')
++    expect(failure?.message).toContain('remove that ancestor pnpm-workspace.yaml')
 +    expect(failure?.message).not.toContain('--store-dir')
++    expect(failure?.message).not.toContain('allowBuilds')
++    expect(failure?.message).not.toContain('update DSH Desktop')
++  })
++
++  it('keeps the profile-relink advice for a .generations/live path', () => {
++    // live/ is not the disposable staging workspace; do not mis-describe it.
++    const live = STAGING_OUTPUT.replace('.generations/staging/1b4f', '.generations/live/1b4f')
++    const failure = classifyPnpmFailure(live)
++    expect(failure?.code).toBe('unexpected-store')
++    expect(failure?.message).toContain('--store-dir')
++    expect(failure?.message).not.toContain('Staging directory')
 +  })
  })
  
