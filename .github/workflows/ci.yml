@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Locked devDependencies cover DSH 0.2; 0.1.5-rc.2 is what DSH Desktop bundles.
+        host: [locked, 0.1.5-rc.2]
+    steps:
+      - uses: actions/checkout@v6
+      # Version comes from package.json "packageManager".
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - if: matrix.host != 'locked'
+        run: >-
+          pnpm --filter @pymodel/dsh-tavily add -D
+          @deepseek-ai/dsh-web@${{ matrix.host }}
+          @deepseek-ai/dsh-credentials@${{ matrix.host }}
+          @deepseek-ai/dsh-launch-environment@${{ matrix.host }}
+      - run: pnpm test

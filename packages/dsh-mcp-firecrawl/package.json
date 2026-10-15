@@ -1,17 +1,31 @@
 {
   "name": "dsh-mcp-firecrawl",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "type": "module",
   "description": "Firecrawl MCP for DeepSeek Harness: web crawling, scraping, search, and structured data extraction",
+  "icon": "./icon.svg",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pymodel/dsh-research-plugins.git",
+    "url": "git+https://github.com/PyModel/dsh-research-plugins.git",
     "directory": "packages/dsh-mcp-firecrawl"
   },
   "bugs": {
-    "url": "https://github.com/pymodel/dsh-research-plugins/issues"
+    "url": "https://github.com/PyModel/dsh-research-plugins/issues"
   },
-  "homepage": "https://github.com/pymodel/dsh-research-plugins/tree/main/packages/dsh-mcp-firecrawl#readme",
+  "homepage": "https://github.com/PyModel/dsh-research-plugins/tree/main/packages/dsh-mcp-firecrawl#readme",
+  "exports": {
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./locale/*.json": "./locale/*.json",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "cordis.patch.yml",
+    "icon.svg",
+    "locale/*.json"
+  ],
   "license": "MIT",
   "author": {
     "name": "elkaix",
@@ -24,13 +38,13 @@
     "firecrawl",
     "scraping"
   ],
+  "engines": {
+    "dsh": ">=0.1.5-rc.2 <0.3.0-0"
+  },
   "dsh": {
+    "manifestVersion": 1,
     "bundle": {
       "patch": "./cordis.patch.yml"
     }
-  },
-  "files": [
-    "cordis.patch.yml",
-    "README.md"
-  ]
+  }
 }

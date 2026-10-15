@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Tavily web search",
+    "description": "Tavily as the web search provider (keyless or with an API key), with official DeepSeek as the off switch, plus the Tavily MCP: search, extract, crawl, map and research."
+  }
+}
